@@ -6,7 +6,8 @@
 # --- Données et machine learning ---
 pandas==3.0.6
 numpy==2.5.3
-scikit-learn==1.9.1
+scikit-learn==1.9.0   # 1.9.1 est bloquée par la protection Windows de la machine de développement
+scipy==1.18.0         # idem : 1.18.1 est bloquée, on garde la version qui fonctionne
 joblib==1.6.0
 
 # --- API ---

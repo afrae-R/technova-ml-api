@@ -1,0 +1,17 @@
+# Environnement Python (propre à chaque ordinateur, jamais partagé)
+.venv/
+
+# Fichiers temporaires créés automatiquement par Python
+__pycache__/
+*.pyc
+
+# Secrets : mots de passe et clés, à ne JAMAIS publier
+.env
+
+# Fichiers temporaires des tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Fichiers de journal
+*.log

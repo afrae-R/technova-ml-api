@@ -1,0 +1,23 @@
+# Données et machine learning
+pandas
+numpy
+scikit-learn
+joblib
+
+# API
+fastapi
+uvicorn[standard]
+pydantic
+
+# Base de données
+sqlalchemy
+psycopg2-binary
+python-dotenv
+
+# Tests
+pytest
+pytest-cov
+httpx
+
+# Remarque : les versions seront figées plus tard, une fois le modèle sauvegardé,
+# pour garantir que le projet fonctionne à l'identique sur un autre ordinateur.

@@ -8,21 +8,25 @@ les choix techniques devant le jury.
 
 - Mission : déployer le modèle de prédiction de départ des salariés du Projet 4 (TechNova)
   derrière une API, pour le client fictif Futurisys (interlocuteur : Aurélien, responsable technique).
-- Soutenance : lundi 12 octobre 2026 (30 min : 15 min de présentation, 10 min de discussion, débrief).
+- Soutenance : **reportée au lundi 19 octobre 2026** (initialement le 12 octobre).
+  Format : 30 min = 15 min de présentation, 10 min de discussion, débrief.
 - Livrables : dépôt Git, API FastAPI documentée, tests Pytest + couverture, base PostgreSQL,
   pipeline CI/CD (YAML, environnements, secrets), README complet.
 
 ## Planning
 
+Le planning initial (soutenance le 12 octobre) a glissé : le projet a été suspendu plusieurs jours,
+puis la soutenance a été reportée au 19 octobre. Planning mis à jour le 16 octobre :
+
 | Jour | Contenu | État |
 |---|---|---|
 | Mar. 6 oct. | Git/GitHub, environnement, modèle sauvegardé | Fait |
-| Mer. 7 oct. | API FastAPI + Pydantic + clé d'accès + Swagger | À faire |
-| Jeu. 8 oct. | Base PostgreSQL (schéma, script de création, dataset, journalisation, requêtes) | À faire |
-| Ven. 9 oct. | Tests Pytest + couverture (API et base) | À faire |
-| Sam. 10 oct. | CI/CD GitHub Actions (tests + déploiement, environnements, secrets) | À faire |
-| Dim. 11 oct. | README final, schéma UML, support de présentation, répétition | À faire |
-| Lun. 12 oct. | Vérifications finales, soutenance | |
+| Ven. 16 oct. (matin) | API FastAPI + Pydantic + clé d'accès + Swagger | Fait |
+| Ven. 16 oct. | PostgreSQL : installation, base `technova`, connexion testée | Fait |
+| Ven. 16 oct. | Base : schéma (3 tables), script de création, chargement du dataset | À faire |
+| Sam. 17 oct. | Journalisation des requêtes/prédictions dans l'API, scripts de requêtes, tests Pytest + couverture | À faire |
+| Dim. 18 oct. | CI/CD GitHub Actions, README final, schéma UML, support de présentation, répétition | À faire |
+| Lun. 19 oct. | Vérifications finales, soutenance | |
 
 ## Ce qui a été fait (6 octobre 2026)
 
@@ -31,6 +35,16 @@ les choix techniques devant le jury.
 - Tag `v0.1.0` (structure initiale).
 - Environnement virtuel `.venv` créé avec `uv`, dépendances installées depuis `requirements.txt`.
 - Modèle entraîné et sauvegardé : `ml/modele_attrition.joblib` (+ `ml/modele_attrition_infos.json`).
+
+## Ce qui a été fait (16 octobre 2026)
+
+- Journal de bord ajouté au dépôt (PR #4).
+- API FastAPI (PR #5) : `GET /health` et `POST /predict`, validation des 23 champs avec Pydantic
+  (types, bornes, cohérence entre champs), clé d'accès dans l'en-tête `X-API-Key`
+  (401 si absente ou fausse, 422 si les données sont invalides), documentation Swagger sur `/docs`.
+  Testée à la main dans Swagger.
+- PostgreSQL 16.15 installé sur la machine (service Windows `postgresql-x64-16`, port 5432),
+  base `technova` créée, connexion testée depuis Python avec l'adresse lue dans `.env`.
 
 ## Choix techniques et pourquoi
 
@@ -50,6 +64,17 @@ les choix techniques devant le jury.
   `nombre_experiences_precedentes`, `niveau_hierarchique_poste`, `note_evaluation_actuelle`,
   `annees_sous_responsable_actuel` (corrélations trop fortes avec d'autres variables).
 - **Secrets** : `.env` n'est jamais publié (`.gitignore`) ; `.env.example` sert de modèle.
+  Le mot de passe PostgreSQL et la clé d'API ne sont que dans `.env`.
+- **PostgreSQL en local** avec l'utilisateur administrateur `postgres` pour le développement.
+  Limite connue : en production, il faudrait un utilisateur dédié à l'application avec des
+  droits limités (principe du moindre privilège). À mentionner dans le README.
+- **Pilote de connexion explicite** : l'adresse de la base est de la forme
+  `postgresql+psycopg2://utilisateur:motdepasse@localhost:5432/technova`. Avec SQLAlchemy 2.1.3,
+  l'adresse simple `postgresql://` cherche le pilote `psycopg` (v3), non installé ;
+  on précise donc `+psycopg2` pour utiliser le pilote déjà installé (`psycopg2-binary`).
+  Choix aussi prudent vis-à-vis du blocage Windows : pas de nouvelle bibliothèque binaire.
+- Pas de caractères spéciaux (`@`, `:`, `/`, `#`, `%`) dans le mot de passe de la base,
+  car il est écrit dans une adresse où ces symboles ont un sens particulier.
 
 ## Résultats du modèle (honnêtes)
 
@@ -65,8 +90,21 @@ les choix techniques devant le jury.
 - **Windows a bloqué des fichiers techniques** ("Une stratégie de contrôle d'application a bloqué
   ce fichier") : `scipy 1.18.1`, puis `scikit-learn 1.9.1`. Solution : revenir aux versions
   déjà acceptées par la machine (`scipy 1.18.0`, `scikit-learn 1.9.0`) et les figer dans
-  `requirements.txt`. À surveiller pour les autres bibliothèques et l'installation de PostgreSQL.
+  `requirements.txt`. À surveiller pour les autres bibliothèques.
 - `Ctrl + C` dans le terminal arrête le programme (ce n'est pas "copier").
+- **Installation de PostgreSQL** :
+  - `winget install PostgreSQL.PostgreSQL.16` a échoué deux fois en cours de téléchargement
+    (erreur `0x80190193`, HTTP 403 « Interdit », vers 130 Mo sur 385 Mo). Cause non identifiée.
+    Solution : télécharger l'installateur officiel EDB avec le navigateur
+    (page https://www.enterprisedb.com/downloads/postgres-postgresql-downloads).
+  - Un premier téléchargement a donné « fichier utilisé par une autre application » ;
+    un second téléchargement, laissé finir, a fonctionné.
+  - Pendant l'installation : « Échec lors du chargement des modules SQL dans le cluster de
+    base de données ». Après validation du message, l'installation s'est terminée. Par prudence,
+    le serveur a été vérifié : service en marche, connexion Python réussie, requête
+    `SELECT version()` correcte (PostgreSQL 16.15). Cause de l'erreur non identifiée ;
+    le journal de l'installateur (dossier `%TEMP%`) n'a pas été consulté.
+- **Erreur de pilote** `No module named 'psycopg'` : voir « Pilote de connexion explicite » ci-dessus.
 
 ## Ce que vérifie la fiche d'autoévaluation (points à ne pas oublier)
 

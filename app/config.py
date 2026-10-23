@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 
 RACINE_PROJET = Path(__file__).resolve().parent.parent
 CHEMIN_MODELE = RACINE_PROJET / "ml" / "modele_attrition.joblib"
+# Informations sauvegardées avec le modèle : versions, scores et seuil de décision
+CHEMIN_INFOS = RACINE_PROJET / "ml" / "modele_attrition_infos.json"
 
 # Lit le fichier .env (s'il existe) et met son contenu à disposition de Python
 load_dotenv(RACINE_PROJET / ".env")

@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.security import APIKeyHeader
 
-from app.config import CHEMIN_MODELE, lire_cle_api
+from app.config import CHEMIN_INFOS, CHEMIN_MODELE, lire_cle_api
 from app.modele import ModeleAttrition
 from app.schemas import FicheSalarie, PredictionReponse
 
@@ -19,18 +19,20 @@ from app.schemas import FicheSalarie, PredictionReponse
 async def cycle_de_vie(app: FastAPI):
     """Exécuté une seule fois au démarrage : on charge la clé et le modèle en mémoire."""
     app.state.cle_api = lire_cle_api()  # refuse de démarrer si la clé n'est pas configurée
-    app.state.modele = ModeleAttrition(CHEMIN_MODELE)
+    app.state.modele = ModeleAttrition(CHEMIN_MODELE, CHEMIN_INFOS)
     yield
 
 
 app = FastAPI(
     title="TechNova - API de prédiction du départ des salariés",
-    version="0.2.0",
+    version="0.3.0",
     description=(
         "Reçoit la fiche d'un salarié et renvoie l'estimation du risque de départ.\n\n"
-        "**Attention :** le modèle a des performances modestes (F1 de la classe « Oui » "
-        "d'environ 0,35 sur le jeu de test). Il constitue une aide à la décision, "
-        "pas un outil de décision automatique.\n\n"
+        "**Attention :** le modèle est réglé pour ne manquer presque aucun départ : sur le jeu de test "
+        "(294 salariés dont 47 départs) il en détecte 37 (rappel de 79 %), mais environ 7 alertes sur 10 "
+        "sont de fausses alertes (précision de 0,30 ; F1 de la classe « Oui » de 0,43). "
+        "La réponse est « Oui » quand le score atteint le seuil de décision (environ 0,38). "
+        "Il constitue une aide à la décision, pas un outil de décision automatique.\n\n"
         "Les requêtes de prédiction nécessitent la clé d'accès dans l'en-tête `X-API-Key` "
         "(bouton **Authorize** ci-dessous)."
     ),

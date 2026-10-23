@@ -24,9 +24,25 @@
     "surcharge_travail",
     "experience_externe"
   ],
-  "f1_oui_train": 0.83,
-  "f1_oui_test": 0.35,
-  "f1_oui_validation_croisee_moyenne": 0.476,
+  "seuil_decision": 0.3808130361215503,
+  "rappel_cible_pour_le_seuil": 0.7,
+  "precision_oui_test": 0.298,
+  "rappel_oui_test": 0.787,
+  "f1_oui_train": 0.597,
+  "f1_oui_test": 0.433,
+  "f1_oui_test_au_seuil_050": 0.457,
+  "matrice_confusion_test_non_oui": [
+    [
+      160,
+      87
+    ],
+    [
+      10,
+      37
+    ]
+  ],
+  "f1_oui_validation_croisee_train_moyenne": 0.495,
+  "rappel_oui_validation_croisee_train_moyenne": 0.521,
   "nb_salaries_entrainement": 1176,
   "nb_salaries_test": 294
 }

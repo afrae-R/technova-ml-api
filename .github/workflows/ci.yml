@@ -1,0 +1,59 @@
+# Robot GitHub Actions du projet TechNova.
+# Il se déclenche à chaque envoi (push) et à chaque Pull Request.
+
+name: CI-CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # ---------- CI : intégration continue (les tests) ----------
+  tests:
+    name: Tests Pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Installer les bibliothèques
+        run: pip install -r requirements.txt
+
+      - name: Lancer les tests avec la couverture
+        run: python -m pytest --cov=app --cov=db --cov-report=term-missing
+
+  # ---------- CD : livraison continue (seulement sur la branche main) ----------
+  deploiement:
+    name: Déploiement (vérification de démarrage)
+    needs: tests               # ne démarre que si les tests ont réussi
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production    # environnement GitHub « production »
+    env:
+      # La vraie clé est un secret GitHub ; à défaut, une clé temporaire propre à ce test
+      API_KEY: ${{ secrets.API_KEY || 'cle-temporaire-ci' }}
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Installer les bibliothèques
+        run: pip install -r requirements.txt
+
+      - name: Démarrer l'API et vérifier qu'elle répond
+        run: |
+          python -m uvicorn app.main:app --port 8000 &
+          sleep 10
+          curl --fail http://127.0.0.1:8000/health

@@ -52,7 +52,8 @@ Prérequis : Python 3.14 et Git. Les versions des bibliothèques sont figées da
    `API_KEY n'est pas configurée. Copiez .env.example en .env ...`.
    (La valeur d'exemple `change-moi` est refusée.)
 
-   `DATABASE_URL` n'est pas nécessaire pour lancer l'API pour le moment ; elle sert aux scripts de la base de données.
+   `DATABASE_URL` n'est pas nécessaire pour lancer l'API : sans elle, l'API démarre avec un avertissement
+   et n'enregistre simplement pas les prédictions. Elle sert à la journalisation et aux scripts de la base de données.
 
 ## Lancer l'API
 
@@ -73,6 +74,8 @@ Dans Swagger :
 1. Cliquer sur **Authorize**, coller la valeur de `API_KEY` de votre fichier `.env`, valider, fermer.
 2. Ouvrir **POST /predict**, cliquer sur **Try it out** (Swagger pré-remplit un exemple de fiche), puis **Execute**.
 
+D'autres fiches d'exemple sont dans `docs/exemples_entrees.json`.
+
 Codes de réponse :
 
 | Code | Signification |
@@ -80,6 +83,38 @@ Codes de réponse :
 | 200 | Prédiction réussie : `{"prediction": "Oui" ou "Non", "probabilite_depart": 0.xxxx}` |
 | 401 | Clé d'API absente ou invalide |
 | 422 | Fiche invalide (champ manquant, valeur hors des règles) |
+
+## Authentification et sécurité
+
+- Chaque appel à `/predict` doit présenter la clé secrète dans l'en-tête `X-API-Key` ; la comparaison est faite
+  avec `secrets.compare_digest`.
+- Les secrets (clé d'API, mot de passe de la base) sont uniquement dans le fichier `.env`, listé dans `.gitignore`
+  et jamais publié. `.env.example` montre les variables à définir, sans valeur réelle.
+- Toutes les fiches sont validées (types, bornes, valeurs permises, cohérence) avant d'atteindre le modèle,
+  puis la base applique ses propres règles.
+- Limite connue : en développement, la base est utilisée avec l'administrateur `postgres` ; en production il faudrait
+  un utilisateur dédié aux droits limités.
+
+## Tests
+
+```
+python -m pytest
+python -m pytest --cov=app --cov=db --cov-report=term-missing
+```
+
+Les 20 tests couvrent l'API (200, 401, 422, respect du seuil, enregistrement en base, API qui répond si la base est
+en panne) et la base (tables, types, contraintes, suppression en cascade). Ils utilisent une base SQLite en mémoire
+et une clé de test : ils ne touchent jamais à la vraie base ni à la vraie clé.
+
+## CI/CD (GitHub Actions)
+
+Le fichier `.github/workflows/ci.yml` :
+
+- à chaque `push` et Pull Request : installe Python 3.14 et les bibliothèques, puis lance les tests avec la couverture ;
+- sur `main`, si les tests passent : démarre l'API et vérifie que `/health` répond (environnement GitHub `production`).
+
+La clé du déploiement vient du secret GitHub `API_KEY` ; à défaut, une clé temporaire est utilisée.
+Ce « déploiement » est une vérification de démarrage, pas une mise en ligne sur un serveur public.
 
 ## Le modèle
 
@@ -92,25 +127,29 @@ Pour le ré-entraîner : `python -m ml.train`.
 Nécessite PostgreSQL 16 installé, une base nommée `technova` et `DATABASE_URL` renseignée dans `.env`.
 
 ```
-python -m db.create_db
-python -m db.charger_salaries
+python -m db.create_db          # crée les 3 tables
+python -m db.charger_salaries   # charge les 1470 salariés
+python -m db.journal            # compte les demandes et prédictions enregistrées
+python -m db.requetes           # lance les requêtes SQL d'exemple
 ```
 
-Trois tables sont créées : `salaries` (les 1470 salariés), `requetes` et `predictions`.
+Trois tables : `salaries` (les 1470 salariés), `requetes` (chaque fiche reçue par l'API, avec la date) et
+`predictions` (chaque réponse, reliée à sa demande). À chaque appel réussi de `/predict`, l'API écrit une ligne dans
+`requetes` et une dans `predictions`. Le schéma et les règles sont décrits dans `docs/modele_donnees.md`.
 
 ## Structure du projet
 
 ```
 technova-ml-api/
-├── app/             # L'API (FastAPI) : routes, validation des données, sécurité
-├── ml/              # Entraînement et sauvegarde du modèle
-├── db/              # Base PostgreSQL : schéma, création, chargement des données
-├── tests/           # Tests automatiques (Pytest)
-├── data/            # Jeux de données utilisés
-├── docs/            # Documentation (journal de bord, notes techniques)
-├── requirements.txt # Bibliothèques Python nécessaires
-├── .env.example     # Modèle de fichier de configuration (sans secrets)
+├── .github/workflows/  # Pipeline CI/CD (GitHub Actions)
+├── app/                # L'API (FastAPI) : routes, validation des données, sécurité
+├── ml/                 # Entraînement et sauvegarde du modèle
+├── db/                 # Base PostgreSQL : schéma, création, chargement, journalisation, requêtes
+├── tests/              # Tests automatiques (Pytest)
+├── data/               # Jeux de données utilisés
+├── docs/               # Documentation (journal de bord, schéma de la base, exemples d'entrées)
+├── requirements.txt    # Bibliothèques Python nécessaires
+├── pytest.ini          # Configuration des tests
+├── .env.example        # Modèle de fichier de configuration (sans secrets)
 └── README.md
 ```
-
-*(Ce README sera complété au fil du projet : journalisation en base, tests, déploiement automatique.)*

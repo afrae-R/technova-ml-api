@@ -8,127 +8,153 @@ les choix techniques devant le jury.
 
 - Mission : déployer le modèle de prédiction de départ des salariés du Projet 4 (TechNova)
   derrière une API, pour le client fictif Futurisys (interlocuteur : Aurélien, responsable technique).
-- Soutenance : **reportée au lundi 19 octobre 2026** (initialement le 12 octobre).
+- Soutenance : **mardi 10 novembre 2026** (reportée plusieurs fois : 12 octobre, 19 octobre, 31 octobre).
   Format : 30 min = 15 min de présentation, 10 min de discussion, débrief.
 - Livrables : dépôt Git, API FastAPI documentée, tests Pytest + couverture, base PostgreSQL,
   pipeline CI/CD (YAML, environnements, secrets), README complet.
 
-## Planning
+## Planning (état au 8 novembre 2026)
 
-Le planning initial (soutenance le 12 octobre) a glissé : le projet a été suspendu plusieurs jours,
-puis la soutenance a été reportée au 19 octobre. Planning mis à jour le 16 octobre :
+Le projet a pris du retard à cause de plusieurs suspensions et de reports de soutenance.
 
-| Jour | Contenu | État |
+| Étape | Contenu | État |
 |---|---|---|
-| Mar. 6 oct. | Git/GitHub, environnement, modèle sauvegardé | Fait |
-| Ven. 16 oct. (matin) | API FastAPI + Pydantic + clé d'accès + Swagger | Fait |
-| Ven. 16 oct. | PostgreSQL : installation, base `technova`, connexion testée | Fait |
-| Ven. 16 oct. | Base : schéma (3 tables), script de création, chargement du dataset | À faire |
-| Sam. 17 oct. | Journalisation des requêtes/prédictions dans l'API, scripts de requêtes, tests Pytest + couverture | À faire |
-| Dim. 18 oct. | CI/CD GitHub Actions, README final, schéma UML, support de présentation, répétition | À faire |
-| Lun. 19 oct. | Vérifications finales, soutenance | |
+| 1 | Git/GitHub, environnement, modèle sauvegardé | Fait |
+| 2 | API FastAPI + Pydantic + clé d'accès + Swagger | Fait |
+| 3 | PostgreSQL : installation, base `technova`, 3 tables, chargement des 1 470 salariés | Fait |
+| 4 | Mise en conformité avec le modèle final du Projet 4 (seuil de décision 0,381) | Fait |
+| 5 | Correction de l'installation pour une personne extérieure (README, fichier `.env`) | Fait |
+| 6 | Journalisation des demandes et prédictions dans PostgreSQL | Fait |
+| 7 | Tests Pytest (20) avec couverture | Fait |
+| 8 | CI/CD GitHub Actions (tests, puis vérification de démarrage) | Fait |
+| 9 | Requêtes SQL d'exemple, schéma de la base, exemples d'entrées | Fait |
+| 10 | Présentation, archive zip, auto-évaluation, répétition | En cours |
 
-## Ce qui a été fait (6 octobre 2026)
+## Ce qui a été fait
 
-- Dépôt GitHub `technova-ml-api`, branches de fonctionnalité + Pull Requests :
-  `feature/structure-projet` (PR #1), `feature/versions-figees` (PR #2), `feature/modele-ml` (PR #3).
+### Début octobre
+- Dépôt GitHub `technova-ml-api`, branches de fonctionnalité + Pull Requests
+  (`feature/structure-projet`, `feature/versions-figees`, `feature/modele-ml`).
 - Tag `v0.1.0` (structure initiale).
 - Environnement virtuel `.venv` créé avec `uv`, dépendances installées depuis `requirements.txt`.
 - Modèle entraîné et sauvegardé : `ml/modele_attrition.joblib` (+ `ml/modele_attrition_infos.json`).
 
-## Ce qui a été fait (16 octobre 2026)
-
-- Journal de bord ajouté au dépôt (PR #4).
-- API FastAPI (PR #5) : `GET /health` et `POST /predict`, validation des 23 champs avec Pydantic
+### 16 octobre
+- API FastAPI : `GET /health` et `POST /predict`, validation des 23 champs avec Pydantic
   (types, bornes, cohérence entre champs), clé d'accès dans l'en-tête `X-API-Key`
   (401 si absente ou fausse, 422 si les données sont invalides), documentation Swagger sur `/docs`.
-  Testée à la main dans Swagger.
-- PostgreSQL 16.15 installé sur la machine (service Windows `postgresql-x64-16`, port 5432),
-  base `technova` créée, connexion testée depuis Python avec l'adresse lue dans `.env`.
+- PostgreSQL 16.15 installé (service Windows `postgresql-x64-16`, port 5432), base `technova` créée.
+
+### Fin octobre
+- Base de données : plan des 3 tables (`db/modeles.py`), connexion (`db/connexion.py`),
+  création (`db/create_db.py`), chargement des 1 470 salariés (`db/charger_salaries.py`).
+- **Mise à jour du modèle après les remarques de l'examinateur du Projet 4** : le modèle final utilise
+  un seuil de décision de 0,381 au lieu de 0,50. `ml/train.py` reproduit exactement le modèle du
+  Projet 4 (mêmes colonnes, même ordre, même encodage, mêmes réglages) et calcule le seuil sur le
+  jeu d'entraînement uniquement ; `app/modele.py` lit ce seuil dans `modele_attrition_infos.json`.
+
+### 3 au 5 novembre
+- Le mentor n'a pas pu lancer l'application : le fichier `.env` n'est pas publié sur GitHub,
+  et l'API refuse volontairement de démarrer sans clé. README complété (installation, création du `.env`).
+- **Journalisation** (`db/journal.py`, `app/main.py`) : chaque prédiction réussie est enregistrée
+  dans `requetes` et `predictions`. Vérifié : 0 ligne avant, 1 demande et 1 prédiction après un appel.
+
+### 8 novembre
+- **Tests Pytest** : 20 tests (API : 200, 401, 422, seuil, enregistrement en base, API qui répond
+  si la base est en panne ; base : tables, types, contraintes, suppression en cascade).
+  Couverture : `main.py` 100 %, `modele.py` 100 %, `db/modeles.py` 100 %, total 66 %.
+- **CI/CD** (`.github/workflows/ci.yml`, PR #12) : tests à chaque push et Pull Request ;
+  sur `main`, vérification du démarrage de l'API. Exécutions vertes.
+- Requêtes SQL d'exemple (`db/requetes.py`), schéma de la base (`docs/modele_donnees.md`),
+  exemples d'entrées (`docs/exemples_entrees.json`) (PR #13).
+- Présentation de 11 diapositives.
 
 ## Choix techniques et pourquoi
 
 - **Branches + Pull Requests** : `main` reste propre ; chaque idée est isolée dans une branche
   et relue avant fusion. Un commit = une idée.
 - **Environnement virtuel + versions figées** : le modèle est lié à la version de scikit-learn
-  qui l'a créé ; tout le monde (API, CI) doit utiliser les mêmes versions.
+  qui l'a créé ; tout le monde (API, CI) doit utiliser les mêmes versions (Python 3.14.3).
 - **Pipeline scikit-learn** (OneHotEncoder + RandomForest) au lieu de `pd.get_dummies` :
-  une API reçoit un seul salarié à la fois ; `get_dummies` ne connaît que ce qu'il voit
-  (une seule ligne = colonnes manquantes ou dans un autre ordre). `OneHotEncoder` mémorise
-  les catégories vues à l'entraînement ; `handle_unknown="ignore"` évite un plantage sur une
-  catégorie inconnue. Le traducteur et le modèle sont sauvegardés ensemble avec `joblib`.
+  une API reçoit un seul salarié à la fois ; `get_dummies` ne connaît que ce qu'il voit.
+  `OneHotEncoder` mémorise les catégories vues à l'entraînement ; `handle_unknown="ignore"`
+  évite un plantage sur une catégorie inconnue. Le traducteur et le modèle sont sauvegardés
+  ensemble avec `joblib`.
 - **`ml/preprocessing.py` partagé** entre l'entraînement et l'API : une seule version du
-  nettoyage et de la création des variables (`surcharge_travail`, `experience_externe`),
-  pour éviter les écarts entre entraînement et production.
-- **Variables retirées** (décisions du Projet 4) : `ayant_enfants` (une seule valeur),
-  `nombre_experiences_precedentes`, `niveau_hierarchique_poste`, `note_evaluation_actuelle`,
-  `annees_sous_responsable_actuel` (corrélations trop fortes avec d'autres variables).
+  nettoyage et de la création des variables (`surcharge_travail`, `experience_externe`).
+- **Seuil de décision 0,381** : rater un départ coûte plus cher qu'une fausse alerte. Le seuil est le
+  plus élevé qui garde un rappel d'au moins 70 % en validation croisée sur l'entraînement
+  (le jeu de test n'est jamais utilisé pour le choisir). Il est stocké avec le modèle.
+- **Variables retirées** (décisions du Projet 4) : `ayant_enfants`, `nombre_experiences_precedentes`,
+  `niveau_hierarchique_poste`, `note_evaluation_actuelle`, `annees_sous_responsable_actuel`.
 - **Secrets** : `.env` n'est jamais publié (`.gitignore`) ; `.env.example` sert de modèle.
-  Le mot de passe PostgreSQL et la clé d'API ne sont que dans `.env`.
+  L'API refuse de démarrer si `API_KEY` est absente ou égale à la valeur d'exemple.
+- **Journalisation tolérante aux pannes** : si la base est absente ou en panne, l'erreur est notée
+  dans le terminal mais l'utilisateur reçoit quand même sa réponse. Les deux lignes (demande et
+  réponse) sont écrites dans une seule transaction.
+- **Base de données avec règles** : colonnes obligatoires, contraintes CHECK (bornes, valeurs
+  permises, cohérence entre colonnes), clé étrangère unique avec suppression en cascade.
+- **Tests sans toucher à la vraie base** : une base SQLite en mémoire et une clé de test ;
+  la dépendance `obtenir_moteur` de l'API est remplacée pendant les tests.
 - **PostgreSQL en local** avec l'utilisateur administrateur `postgres` pour le développement.
-  Limite connue : en production, il faudrait un utilisateur dédié à l'application avec des
-  droits limités (principe du moindre privilège). À mentionner dans le README.
-- **Pilote de connexion explicite** : l'adresse de la base est de la forme
-  `postgresql+psycopg2://utilisateur:motdepasse@localhost:5432/technova`. Avec SQLAlchemy 2.1.3,
-  l'adresse simple `postgresql://` cherche le pilote `psycopg` (v3), non installé ;
-  on précise donc `+psycopg2` pour utiliser le pilote déjà installé (`psycopg2-binary`).
-  Choix aussi prudent vis-à-vis du blocage Windows : pas de nouvelle bibliothèque binaire.
-- Pas de caractères spéciaux (`@`, `:`, `/`, `#`, `%`) dans le mot de passe de la base,
-  car il est écrit dans une adresse où ces symboles ont un sens particulier.
+  Limite : en production, il faudrait un utilisateur dédié aux droits limités (moindre privilège).
+- **Pilote de connexion explicite** : adresse `postgresql+psycopg2://...` (SQLAlchemy 2.1.3 cherche
+  sinon `psycopg` v3, non installé).
+- Pas de caractères spéciaux (`@`, `:`, `/`, `#`, `%`) dans le mot de passe de la base.
 
 ## Résultats du modèle (honnêtes)
 
-- Test (294 salariés, dont 47 partants) : F1 "Oui" = 0,35 (précision 0,32, rappel 0,38),
-  accuracy 0,77 (un modèle qui répond toujours "Non" ferait 0,84).
-- F1 "Oui" train = 0,83 contre 0,35 en test : surapprentissage.
-- F1 "Oui" en validation croisée : 0,48 (+/- 0,05), estimation plus fiable que le test seul.
-- Conclusion à présenter : performance modeste ; le modèle est une aide à la décision,
-  pas un outil de décision automatique. Le Projet 5 porte sur le déploiement, pas sur la performance.
+Modèle final (forêt aléatoire, seuil 0,381), jeu de test de 294 salariés dont 47 partants :
+
+- 37 départs détectés sur 47 (rappel 0,79), 10 manqués.
+- 87 fausses alertes : précision 0,30 (environ 7 alertes sur 10 sont fausses).
+- F1 de la classe « Oui » : 0,43 (0,46 au seuil de 0,50).
+- Matrice de confusion (réel Non / Oui, prédit Non / Oui) : [[160, 87], [10, 37]].
+- Validation croisée sur l'entraînement (seuil 0,50) : F1 0,49 (+/- 0,06) ; rappel 0,52 (+/- 0,07).
+- F1 « Oui » train 0,60 contre 0,43 en test : léger surapprentissage.
+- Le score n'est pas une probabilité calibrée.
+- Conclusion à présenter : performance modeste ; le modèle est une aide à la décision, pas un outil
+  de décision automatique. Le Projet 5 porte sur le déploiement, pas sur la performance.
 
 ## Problèmes rencontrés
 
-- **Windows a bloqué des fichiers techniques** ("Une stratégie de contrôle d'application a bloqué
-  ce fichier") : `scipy 1.18.1`, puis `scikit-learn 1.9.1`. Solution : revenir aux versions
-  déjà acceptées par la machine (`scipy 1.18.0`, `scikit-learn 1.9.0`) et les figer dans
-  `requirements.txt`. À surveiller pour les autres bibliothèques.
-- `Ctrl + C` dans le terminal arrête le programme (ce n'est pas "copier").
-- **Installation de PostgreSQL** :
-  - `winget install PostgreSQL.PostgreSQL.16` a échoué deux fois en cours de téléchargement
-    (erreur `0x80190193`, HTTP 403 « Interdit », vers 130 Mo sur 385 Mo). Cause non identifiée.
-    Solution : télécharger l'installateur officiel EDB avec le navigateur
-    (page https://www.enterprisedb.com/downloads/postgres-postgresql-downloads).
-  - Un premier téléchargement a donné « fichier utilisé par une autre application » ;
-    un second téléchargement, laissé finir, a fonctionné.
-  - Pendant l'installation : « Échec lors du chargement des modules SQL dans le cluster de
-    base de données ». Après validation du message, l'installation s'est terminée. Par prudence,
-    le serveur a été vérifié : service en marche, connexion Python réussie, requête
-    `SELECT version()` correcte (PostgreSQL 16.15). Cause de l'erreur non identifiée ;
-    le journal de l'installateur (dossier `%TEMP%`) n'a pas été consulté.
-- **Erreur de pilote** `No module named 'psycopg'` : voir « Pilote de connexion explicite » ci-dessus.
+- **Windows a bloqué des fichiers techniques** (`scipy 1.18.1`, puis `scikit-learn 1.9.1`).
+  Solution : revenir aux versions acceptées (`scipy 1.18.0`, `scikit-learn 1.9.0`) et les figer.
+- **Installation de PostgreSQL** : `winget` a échoué deux fois (erreur `0x80190193`, HTTP 403) ;
+  installateur officiel EDB téléchargé avec le navigateur. Message « Échec lors du chargement des
+  modules SQL dans le cluster » pendant l'installation : après validation, le serveur fonctionne
+  (service en marche, `SELECT version()` correct). Cause non identifiée.
+- **Erreur de pilote** `No module named 'psycopg'` : voir « Pilote de connexion explicite ».
+- **Modèle du Projet 5 différent du modèle final du Projet 4** (ordre des colonnes, encodage) :
+  F1 de 0,35 contre 0,43. Corrigé dans `ml/train.py` et vérifié.
+- **L'application ne démarre pas chez une autre personne** (constaté avec le mentor) : le `.env`
+  n'est pas sur GitHub. Contournement temporaire pendant le diagnostic (deux lignes de sécurité mises
+  en commentaire), puis retiré. Solution : README avec les étapes de création du `.env`.
+- **Fichier `ci.yml` créé au mauvais endroit** (dans `app/.github`) : recréé à la racine.
+  VS Code gardait l'ancienne erreur affichée en rouge jusqu'au redémarrage.
 
 ## Ce que vérifie la fiche d'autoévaluation (points à ne pas oublier)
 
-- Git : historique clair, branches dédiées, tags ; requirements.txt exhaustif ;
-  installation automatisée lors du déploiement.
+- Git : historique clair, branches dédiées, tags ; requirements.txt exhaustif.
 - Base de données : schéma détaillé avec relations et contraintes ; script de création ;
-  dataset inséré ; exemples d'entrées ; **script de journalisation des interactions
-  utilisateur / modèle** ; scripts de requêtes.
-- API : FastAPI, expose le modèle, documentation Swagger (endpoints, schémas, exemples d'appels),
-  pas d'erreur de validation des données.
-- Tests : Pytest, cas critiques **et** cas d'erreur, tests sur la base (insertion, suppression,
-  types, présence/absence de valeurs), rapport de couverture.
-- CI/CD : YAML GitHub Actions qui lance les tests et le déploiement ; environnements
-  développement/production (test optionnel) ; gestion des secrets.
-- README : projet, installation, utilisation, déploiement, authentification, bonnes pratiques
-  de sécurité (secrets, hachage), processus de stockage des données, besoins analytiques.
+  dataset inséré ; exemples d'entrées ; script de journalisation ; scripts de requêtes.
+- API : FastAPI, expose le modèle, documentation Swagger, pas d'erreur de validation des données.
+- Tests : Pytest, cas critiques et cas d'erreur, tests sur la base, rapport de couverture.
+- CI/CD : YAML GitHub Actions qui lance les tests et le déploiement ; environnements ; secrets.
+- README : projet, installation, utilisation, déploiement, authentification, sécurité, stockage des données.
 - Savoir justifier ses choix techniques.
+
+## Limites assumées
+
+- Le « déploiement » du CI/CD est une vérification de démarrage de l'API dans le robot GitHub Actions,
+  pas une mise en ligne sur un serveur public.
+- Un seul environnement GitHub (`production`) ; le développement se fait sur l'ordinateur local.
+- Le secret `API_KEY` n'est pas encore enregistré dans GitHub : le déploiement utilise une clé
+  temporaire si le secret est absent.
+- Les scripts d'entraînement (`ml/train.py`) et de création de base ne sont pas testés (couverture totale 66 %).
 
 ## Questions probables du jury
 
 1. Quels défis avec FastAPI et comment les avez-vous surmontés ?
 2. Quelle est votre stratégie de tests et comment assurez-vous une couverture complète ?
 3. Comment avez-vous géré la configuration de la base et son intégration avec le modèle ?
-
-## À poser au mentor
-
-- Comment montrer le "déploiement" dans le YAML alors que l'API est déployée en local ?

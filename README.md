@@ -111,10 +111,12 @@ et une clé de test : ils ne touchent jamais à la vraie base ni à la vraie cl�
 Le fichier `.github/workflows/ci.yml` :
 
 - à chaque `push` et Pull Request : installe Python 3.14 et les bibliothèques, puis lance les tests avec la couverture ;
-- sur `main`, si les tests passent : démarre l'API et vérifie que `/health` répond (environnement GitHub `production`).
+- ensuite, job `staging` (environnement GitHub `staging`) : démarre l'API et vérifie que `/health` répond ; il tourne aussi sur les Pull Request ;
+- enfin, sur `main` seulement, job `production` (environnement GitHub `production`) : même vérification, uniquement si `staging` a réussi.
 
-La clé du déploiement vient du secret GitHub `API_KEY` ; à défaut, une clé temporaire est utilisée.
-Ce « déploiement » est une vérification de démarrage, pas une mise en ligne sur un serveur public.
+Chaque environnement a son propre secret `API_KEY`, enregistré dans les réglages du dépôt GitHub (Settings > Environments) :
+la clé n'est jamais dans le code et elle est distincte de celle du fichier `.env` local.
+Ces « déploiements » sont des vérifications de démarrage, pas une mise en ligne sur un serveur public.
 
 ## Le modèle
 

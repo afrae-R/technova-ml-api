@@ -8,12 +8,12 @@ les choix techniques devant le jury.
 
 - Mission : déployer le modèle de prédiction de départ des salariés du Projet 4 (TechNova)
   derrière une API, pour le client fictif Futurisys (interlocuteur : Aurélien, responsable technique).
-- Soutenance : **mardi 10 novembre 2026** (reportée plusieurs fois : 12 octobre, 19 octobre, 31 octobre).
+- Soutenance : **mardi 17 novembre 2026** (reportée plusieurs fois : 12 octobre, 19 octobre, 31 octobre, 10 novembre).
   Format : 30 min = 15 min de présentation, 10 min de discussion, débrief.
 - Livrables : dépôt Git, API FastAPI documentée, tests Pytest + couverture, base PostgreSQL,
   pipeline CI/CD (YAML, environnements, secrets), README complet.
 
-## Planning (état au 8 novembre 2026)
+## Planning (état au 10 novembre 2026)
 
 Le projet a pris du retard à cause de plusieurs suspensions et de reports de soutenance.
 
@@ -26,7 +26,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 | 5 | Correction de l'installation pour une personne extérieure (README, fichier `.env`) | Fait |
 | 6 | Journalisation des demandes et prédictions dans PostgreSQL | Fait |
 | 7 | Tests Pytest (20) avec couverture | Fait |
-| 8 | CI/CD GitHub Actions (tests, puis vérification de démarrage) | Fait |
+| 8 | CI/CD GitHub Actions (tests, puis vérification de démarrage en `staging` et en `production`) | Fait |
 | 9 | Requêtes SQL d'exemple, schéma de la base, exemples d'entrées | Fait |
 | 10 | Présentation, archive zip, auto-évaluation, répétition | En cours |
 
@@ -62,12 +62,17 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 ### 8 novembre
 - **Tests Pytest** : 20 tests (API : 200, 401, 422, seuil, enregistrement en base, API qui répond
   si la base est en panne ; base : tables, types, contraintes, suppression en cascade).
-  Couverture : `main.py` 100 %, `modele.py` 100 %, `db/modeles.py` 100 %, total 66 %.
+  Couverture : `main.py` 100 %, `modele.py` 100 %, `db/modeles.py` 100 %, total 78 % (mesuré sur `app/` et `db/`, voir `docs/rapport_couverture.txt`).
 - **CI/CD** (`.github/workflows/ci.yml`, PR #12) : tests à chaque push et Pull Request ;
   sur `main`, vérification du démarrage de l'API. Exécutions vertes.
 - Requêtes SQL d'exemple (`db/requetes.py`), schéma de la base (`docs/modele_donnees.md`),
   exemples d'entrées (`docs/exemples_entrees.json`) (PR #13).
 - Présentation de 11 diapositives.
+
+### 10 novembre
+- **CI/CD à deux environnements** : le job de déploiement est remplacé par deux jobs, `staging` (aussi lancé sur les Pull Requests)
+  puis `production` (sur `main` seulement, uniquement si `staging` a réussi). Chaque environnement a son secret `API_KEY`.
+- Ajout de l'environnement `staging` et de son secret dans les réglages GitHub ; README et journal mis à jour.
 
 ## Choix techniques et pourquoi
 
@@ -133,28 +138,13 @@ Modèle final (forêt aléatoire, seuil 0,381), jeu de test de 294 salariés don
 - **Fichier `ci.yml` créé au mauvais endroit** (dans `app/.github`) : recréé à la racine.
   VS Code gardait l'ancienne erreur affichée en rouge jusqu'au redémarrage.
 
-## Ce que vérifie la fiche d'autoévaluation (points à ne pas oublier)
-
-- Git : historique clair, branches dédiées, tags ; requirements.txt exhaustif.
-- Base de données : schéma détaillé avec relations et contraintes ; script de création ;
-  dataset inséré ; exemples d'entrées ; script de journalisation ; scripts de requêtes.
-- API : FastAPI, expose le modèle, documentation Swagger, pas d'erreur de validation des données.
-- Tests : Pytest, cas critiques et cas d'erreur, tests sur la base, rapport de couverture.
-- CI/CD : YAML GitHub Actions qui lance les tests et le déploiement ; environnements ; secrets.
-- README : projet, installation, utilisation, déploiement, authentification, sécurité, stockage des données.
-- Savoir justifier ses choix techniques.
-
 ## Limites assumées
 
 - Le « déploiement » du CI/CD est une vérification de démarrage de l'API dans le robot GitHub Actions,
   pas une mise en ligne sur un serveur public.
-- Un seul environnement GitHub (`production`) ; le développement se fait sur l'ordinateur local.
-- Le secret `API_KEY` n'est pas encore enregistré dans GitHub : le déploiement utilise une clé
-  temporaire si le secret est absent.
-- Les scripts d'entraînement (`ml/train.py`) et de création de base ne sont pas testés (couverture totale 66 %).
-
-## Questions probables du jury
-
-1. Quels défis avec FastAPI et comment les avez-vous surmontés ?
-2. Quelle est votre stratégie de tests et comment assurez-vous une couverture complète ?
-3. Comment avez-vous géré la configuration de la base et son intégration avec le modèle ?
+- Deux environnements GitHub (`staging` puis `production`) qui font la même vérification de démarrage ; le développement se fait sur l'ordinateur local.
+- Chaque environnement GitHub (`staging`, `production`) a son propre secret `API_KEY`, enregistré dans les réglages du dépôt ;
+  ce sont des clés distinctes de celle du `.env` local.
+- Les scripts de création et de chargement de la base (`db/create_db.py`, `db/charger_salaries.py`,
+  `db/requetes.py`) ne sont pas testés (0 %), et `ml/train.py` est hors du périmètre mesuré
+  (couverture totale mesurée sur `app/` et `db/` : 78 %).

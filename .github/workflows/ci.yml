@@ -29,16 +29,43 @@ jobs:
       - name: Lancer les tests avec la couverture
         run: python -m pytest --cov=app --cov=db --cov-report=term-missing
 
-  # ---------- CD : livraison continue (seulement sur la branche main) ----------
-  deploiement:
-    name: Déploiement (vérification de démarrage)
+  # ---------- CD : livraison continue, en deux environnements ----------
+  # Chaque environnement GitHub a son propre secret API_KEY (Réglages > Environments).
+
+  staging:
+    name: Staging (vérification de démarrage)
     needs: tests               # ne démarre que si les tests ont réussi
+    runs-on: ubuntu-latest
+    environment: staging       # environnement GitHub « staging » (essai avant la production)
+    env:
+      API_KEY: ${{ secrets.API_KEY }}   # secret propre à l'environnement staging
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Installer les bibliothèques
+        run: pip install -r requirements.txt
+
+      - name: Démarrer l'API et vérifier qu'elle répond
+        run: |
+          python -m uvicorn app.main:app --port 8000 &
+          sleep 10
+          curl --fail http://127.0.0.1:8000/health
+
+  production:
+    name: Production (vérification de démarrage)
+    needs: staging             # ne démarre que si staging a réussi
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production    # environnement GitHub « production »
     env:
-      # La vraie clé est un secret GitHub ; à défaut, une clé temporaire propre à ce test
-      API_KEY: ${{ secrets.API_KEY || 'cle-temporaire-ci' }}
+      API_KEY: ${{ secrets.API_KEY }}   # secret propre à l'environnement production
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4

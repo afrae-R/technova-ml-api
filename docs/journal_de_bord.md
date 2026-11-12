@@ -25,7 +25,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 | 4 | Mise en conformité avec le modèle final du Projet 4 (seuil de décision 0,381) | Fait |
 | 5 | Correction de l'installation pour une personne extérieure (README, fichier `.env`) | Fait |
 | 6 | Journalisation des demandes et prédictions dans PostgreSQL | Fait |
-| 7 | Tests Pytest (20) avec couverture | Fait |
+| 7 | Tests Pytest (29) avec couverture (97 %) | Fait |
 | 8 | CI/CD GitHub Actions (tests, puis vérification de démarrage en `staging` et en `production`) | Fait |
 | 9 | Requêtes SQL d'exemple, schéma de la base, exemples d'entrées | Fait |
 | 10 | Présentation, archive zip, auto-évaluation, répétition | En cours |
@@ -62,7 +62,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 ### 8 novembre
 - **Tests Pytest** : 20 tests (API : 200, 401, 422, seuil, enregistrement en base, API qui répond
   si la base est en panne ; base : tables, types, contraintes, suppression en cascade).
-  Couverture : `main.py` 100 %, `modele.py` 100 %, `db/modeles.py` 100 %, total 78 % (mesuré sur `app/` et `db/`, voir `docs/rapport_couverture.txt`).
+  Couverture : `main.py` 100 %, `modele.py` 100 %, `db/modeles.py` 100 %, total 78 % à cette date (mesuré sur `app/` et `db/`) ; complété ensuite, voir le 12 novembre.
 - **CI/CD** (`.github/workflows/ci.yml`, PR #12) : tests à chaque push et Pull Request ;
   sur `main`, vérification du démarrage de l'API. Exécutions vertes.
 - Requêtes SQL d'exemple (`db/requetes.py`), schéma de la base (`docs/modele_donnees.md`),
@@ -73,6 +73,11 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 - **CI/CD à deux environnements** : le job de déploiement est remplacé par deux jobs, `staging` (aussi lancé sur les Pull Requests)
   puis `production` (sur `main` seulement, uniquement si `staging` a réussi). Chaque environnement a son secret `API_KEY`.
 - Ajout de l'environnement `staging` et de son secret dans les réglages GitHub ; README et journal mis à jour.
+
+### 12 novembre
+- **Tests complétés** : 9 nouveaux tests (`tests/test_scripts_base.py` et `tests/test_cas_limites.py`) : les scripts de création,
+  de chargement et de requêtes de la base testés avec une base SQLite temporaire, deux règles de cohérence de la fiche,
+  clé d'API ou adresse de base non configurée. Au total 29 tests, couverture 97 % (78 % avant).
 
 ## Choix techniques et pourquoi
 
@@ -145,6 +150,6 @@ Modèle final (forêt aléatoire, seuil 0,381), jeu de test de 294 salariés don
 - Deux environnements GitHub (`staging` puis `production`) qui font la même vérification de démarrage ; le développement se fait sur l'ordinateur local.
 - Chaque environnement GitHub (`staging`, `production`) a son propre secret `API_KEY`, enregistré dans les réglages du dépôt ;
   ce sont des clés distinctes de celle du `.env` local.
-- Les scripts de création et de chargement de la base (`db/create_db.py`, `db/charger_salaries.py`,
-  `db/requetes.py`) ne sont pas testés (0 %), et `ml/train.py` est hors du périmètre mesuré
-  (couverture totale mesurée sur `app/` et `db/` : 78 %).
+- Les 9 lignes de lancement à la main des scripts (blocs `if __name__ == "__main__"` de `db/create_db.py`,
+  `db/charger_salaries.py`, `db/requetes.py` et `db/journal.py`) ne sont pas testées, et `ml/train.py` est hors du
+  périmètre mesuré (couverture totale mesurée sur `app/` et `db/` : 97 %, voir `docs/rapport_couverture.txt`).

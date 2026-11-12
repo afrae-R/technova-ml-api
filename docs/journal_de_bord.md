@@ -23,7 +23,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 | 2 | API FastAPI + Pydantic + clé d'accès + Swagger | Fait |
 | 3 | PostgreSQL : installation, base `technova`, 3 tables, chargement des 1 470 salariés | Fait |
 | 4 | Mise en conformité avec le modèle final du Projet 4 (seuil de décision 0,381) | Fait |
-| 5 | Correction de l'installation pour une personne extérieure (README, fichier `.env`) | Fait |
+| 5 | README complété : installation et création du fichier `.env` | Fait |
 | 6 | Journalisation des demandes et prédictions dans PostgreSQL | Fait |
 | 7 | Tests Pytest (29) avec couverture (97 %) | Fait |
 | 8 | CI/CD GitHub Actions (tests, puis vérification de démarrage en `staging` et en `production`) | Fait |
@@ -54,8 +54,9 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
   jeu d'entraînement uniquement ; `app/modele.py` lit ce seuil dans `modele_attrition_infos.json`.
 
 ### 3 au 5 novembre
-- Le mentor n'a pas pu lancer l'application : le fichier `.env` n'est pas publié sur GitHub,
-  et l'API refuse volontairement de démarrer sans clé. README complété (installation, création du `.env`).
+- En visio avec le mentor, l'application ne démarrait pas sur mon ordinateur. Pour le diagnostic, le mentor a mis en commentaire
+  deux lignes de sécurité et l'application a démarré ; ce contournement temporaire a ensuite été retiré.
+  README complété : étapes d'installation et de création du fichier `.env`.
 - **Journalisation** (`db/journal.py`, `app/main.py`) : chaque prédiction réussie est enregistrée
   dans `requetes` et `predictions`. Vérifié : 0 ligne avant, 1 demande et 1 prédiction après un appel.
 
@@ -137,9 +138,9 @@ Modèle final (forêt aléatoire, seuil 0,381), jeu de test de 294 salariés don
 - **Erreur de pilote** `No module named 'psycopg'` : voir « Pilote de connexion explicite ».
 - **Modèle du Projet 5 différent du modèle final du Projet 4** (ordre des colonnes, encodage) :
   F1 de 0,35 contre 0,43. Corrigé dans `ml/train.py` et vérifié.
-- **L'application ne démarre pas chez une autre personne** (constaté avec le mentor) : le `.env`
-  n'est pas sur GitHub. Contournement temporaire pendant le diagnostic (deux lignes de sécurité mises
-  en commentaire), puis retiré. Solution : README avec les étapes de création du `.env`.
+- **L'application ne démarrait pas sur mon ordinateur** (constaté en visio avec le mentor). Contournement temporaire pendant le
+  diagnostic : deux lignes de sécurité mises en commentaire, puis retirées. Pour toute personne qui installe le projet,
+  le README décrit les étapes de création du fichier `.env` (non publié sur GitHub).
 - **Fichier `ci.yml` créé au mauvais endroit** (dans `app/.github`) : recréé à la racine.
   VS Code gardait l'ancienne erreur affichée en rouge jusqu'au redémarrage.
 

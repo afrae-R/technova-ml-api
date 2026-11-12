@@ -102,9 +102,13 @@ python -m pytest
 python -m pytest --cov=app --cov=db --cov-report=term-missing
 ```
 
-Les 20 tests couvrent l'API (200, 401, 422, respect du seuil, enregistrement en base, API qui répond si la base est
-en panne) et la base (tables, types, contraintes, suppression en cascade). Ils utilisent une base SQLite en mémoire
-et une clé de test : ils ne touchent jamais à la vraie base ni à la vraie clé.
+Les 29 tests couvrent l'API (200, 401, 422, respect du seuil, enregistrement en base, API qui répond si la base est
+en panne), la base (tables, types, contraintes, suppression en cascade), les scripts de la base (création, chargement,
+requêtes) et des cas limites (règles de cohérence de la fiche, clé d'API ou adresse de base non configurée).
+Ils utilisent une base SQLite en mémoire et une clé de test : ils ne touchent jamais à la vraie base ni à la vraie clé.
+
+La couverture totale est de 97 % (voir `docs/rapport_couverture.txt`). Les seules lignes non exécutées sont les 9 lignes
+de lancement à la main des scripts (blocs `if __name__ == "__main__"`).
 
 ## CI/CD (GitHub Actions)
 

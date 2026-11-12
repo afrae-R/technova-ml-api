@@ -4,10 +4,12 @@ rootdir: C:\Users\afrae\Desktop\open classrooms project\P5\technova-ml-api
 configfile: pytest.ini
 testpaths: tests
 plugins: anyio-4.15.1, platformdirs-4.13.5, cov-7.1.0
-collected 20 items
+collected 29 items
 
-tests\test_api.py .............                                          [ 65%]
-tests\test_base.py .......                                               [100%]
+tests\test_api.py .............                                          [ 44%]
+tests\test_base.py .......                                               [ 68%]
+tests\test_cas_limites.py ......                                         [ 89%]
+tests\test_scripts_base.py ...                                           [100%]
 
 ============================== warnings summary ===============================
 .venv\Lib\site-packages\fastapi\testclient.py:1
@@ -21,17 +23,17 @@ _______________ coverage: platform win32, python 3.14.3-final-0 _______________
 Name                     Stmts   Miss  Cover   Missing
 ------------------------------------------------------
 app\__init__.py              0      0   100%
-app\config.py               13      1    92%   28
+app\config.py               13      0   100%
 app\main.py                 46      0   100%
 app\modele.py               18      0   100%
-app\schemas.py              39      2    95%   106, 110
+app\schemas.py              39      0   100%
 db\__init__.py               0      0   100%
-db\charger_salaries.py      26     26     0%   9-60
-db\connexion.py             14      1    93%   29
-db\create_db.py             10     10     0%   9-26
+db\charger_salaries.py      26      3    88%   58-60
+db\connexion.py             14      0   100%
+db\create_db.py             10      2    80%   25-26
 db\journal.py               24      3    88%   46-48
 db\modeles.py               62      0   100%
-db\requetes.py              15     15     0%   8-55
+db\requetes.py              15      1    93%   55
 ------------------------------------------------------
-TOTAL                      267     58    78%
-======================== 20 passed, 1 warning in 1.23s ========================
+TOTAL                      267      9    97%
+======================== 29 passed, 1 warning in 1.32s ========================

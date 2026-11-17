@@ -1,7 +1,10 @@
 """Réglages communs à tous les tests (pytest lit ce fichier automatiquement).
 
 Règle d'or : les tests ne touchent JAMAIS à la vraie base PostgreSQL ni à la vraie clé.
-On utilise une clé de test et une petite base SQLite qui vit seulement en mémoire.
+On utilise une clé de test et une base de test, de deux façons possibles :
+  - par défaut (sur votre ordinateur) : une petite base SQLite qui vit seulement en mémoire ;
+  - si la variable TEST_DATABASE_URL existe (c'est le cas sur GitHub) : une base
+    PostgreSQL de TEST, jetable, démarrée par le robot GitHub. Jamais la vraie base.
 """
 import copy
 import os
@@ -10,6 +13,8 @@ import os
 #  - une clé de test, qui prend le pas sur celle du fichier .env ;
 #  - une adresse de base vide, pour que l'API n'essaie pas de joindre PostgreSQL.
 CLE_DE_TEST = "cle-de-test-uniquement"
+# Adresse d'une base PostgreSQL de TEST (vide si absente : on utilise alors SQLite)
+ADRESSE_BASE_DE_TEST = os.environ.get("TEST_DATABASE_URL", "").strip()
 os.environ["API_KEY"] = CLE_DE_TEST
 os.environ["DATABASE_URL"] = ""
 
@@ -46,12 +51,18 @@ def entetes():
 
 
 def creer_base_de_test(avec_tables=True):
-    """Crée une petite base SQLite en mémoire (disparaît à la fin du test)."""
-    moteur = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,  # une seule connexion partagée, sinon la base en mémoire se perd
-    )
+    """Crée une base de test : PostgreSQL de test si TEST_DATABASE_URL existe, sinon SQLite."""
+    if ADRESSE_BASE_DE_TEST:
+        moteur = create_engine(ADRESSE_BASE_DE_TEST)
+        # La base PostgreSQL de test est la même pour tous les tests : on la vide d'abord,
+        # pour que chaque test parte d'une base propre (comme avec SQLite en mémoire).
+        Base.metadata.drop_all(moteur)
+    else:
+        moteur = create_engine(
+            "sqlite://",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,  # une seule connexion partagée, sinon la base en mémoire se perd
+        )
     if avec_tables:
         Base.metadata.create_all(moteur)
     return moteur
@@ -62,6 +73,18 @@ def moteur_test():
     """Une base de test avec les 3 tables, vide."""
     moteur = creer_base_de_test()
     yield moteur
+    if ADRESSE_BASE_DE_TEST:
+        Base.metadata.drop_all(moteur)   # on range : la base PostgreSQL de test est vidée
+    moteur.dispose()
+
+
+@pytest.fixture
+def moteur_vide():
+    """Une base de test SANS aucune table (pour tester la création des tables)."""
+    moteur = creer_base_de_test(avec_tables=False)
+    yield moteur
+    if ADRESSE_BASE_DE_TEST:
+        Base.metadata.drop_all(moteur)
     moteur.dispose()
 
 

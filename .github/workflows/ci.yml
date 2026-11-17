@@ -13,6 +13,28 @@ jobs:
   tests:
     name: Tests Pytest
     runs-on: ubuntu-latest
+
+    # Une base PostgreSQL 16 de TEST, démarrée à côté des tests et détruite à la fin du job.
+    # Ces identifiants ne protègent rien de réel : la base n'existe que pendant les tests.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: technova_test
+        ports:
+          - 5432:5432
+        # On attend que PostgreSQL soit prêt avant de lancer les tests
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/technova_test
+
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
@@ -26,7 +48,7 @@ jobs:
       - name: Installer les bibliothèques
         run: pip install -r requirements.txt
 
-      - name: Lancer les tests avec la couverture
+      - name: Lancer les tests avec la couverture (sur PostgreSQL)
         run: python -m pytest --cov=app --cov=db --cov-report=term-missing
 
   # ---------- CD : livraison continue, en deux environnements ----------

@@ -106,17 +106,35 @@ Codes de réponse :
 ## Tests
 
 ```
-python -m pytest
-python -m pytest --cov=app --cov=db --cov-report=term-missing
+python -m pytest                              # lance les tests ; la couverture est mesurée automatiquement (pytest.ini)
+python -m pytest --cov-report=term-missing    # idem, avec les numéros des lignes non exécutées
 ```
 
-Les 29 tests couvrent l'API (200, 401, 422, respect du seuil, enregistrement en base, API qui répond si la base est
-en panne), la base (tables, types, contraintes, suppression en cascade), les scripts de la base (création, chargement,
-requêtes) et des cas limites (règles de cohérence de la fiche, clé d'API ou adresse de base non configurée).
-Ils utilisent une base SQLite en mémoire et une clé de test : ils ne touchent jamais à la vraie base ni à la vraie clé.
+Les 90 tests se répartissent en cinq familles :
 
-La couverture totale est de 97 % (voir `docs/rapport_couverture.txt`). Les seules lignes non exécutées sont les 9 lignes
-de lancement à la main des scripts (blocs `if __name__ == "__main__"`).
+- **Tests unitaires** (`test_unitaires_ml.py`, `test_base.py`, `test_scripts_base.py`, `test_cas_limites.py`) : chaque
+  composant seul, avec des données dont on connaît la bonne réponse : création des variables `surcharge_travail` et
+  `experience_externe`, nettoyage des données, règle de décision (« Oui » si le score atteint le seuil, y compris pile
+  au seuil), valeurs autorisées par l'API comparées à celles connues du modèle, tables, types et contraintes de la base,
+  règles de cohérence de la fiche, clé d'API ou adresse de base non configurée.
+- **Tests de l'API** (`test_api.py`) : chaque endpoint et chaque erreur (200, 401, 422, 503 si l'enregistrement en base
+  est impossible), respect du seuil, enregistrement en base.
+- **Tests fonctionnels** (`test_fonctionnel.py`) : l'API et le modèle ensemble, avec 15 vrais salariés des données
+  (profils variés), des profils extrêmes (tout au minimum, tout au maximum) et des profils types (à risque, stable).
+- **Tests de performance et de reproductibilité** (`test_modele_performance.py`) : sur le jeu de test (même découpage que
+  l'entraînement, graine 42), le rappel dépasse la cible de 70 %, la précision et le F1 restent au-dessus d'un plancher,
+  les résultats correspondent à ceux enregistrés, et un réentraînement redonne le même modèle.
+- **Tests des commandes** (`test_lancement_scripts.py`) : les commandes du README (`python -m db.create_db`,
+  `db.charger_salaries`, `db.journal`, `db.requetes`, `ml.train`) sont lancées pour de vrai, sur une base SQLite
+  temporaire ; l'entraînement est lancé sans écraser le modèle enregistré.
+
+Les tests utilisent une clé de test et une base de test : SQLite en mémoire sur l'ordinateur local, et une base
+PostgreSQL 16 jetable démarrée par le robot GitHub Actions (variable `TEST_DATABASE_URL`). Ils ne touchent jamais à la
+vraie base ni à la vraie clé.
+
+La couverture totale est de 100 %, mesurée sur `app/`, `db/` et `ml/` (voir `docs/rapport_couverture.txt`) : chaque
+ligne du code est exécutée par au moins un test. Cela ne prouve pas que tous les cas possibles sont testés : les
+jeux de données de test restent limités aux données TechNova et à quelques profils types.
 
 ## CI/CD (GitHub Actions)
 
@@ -148,7 +166,7 @@ Les environnements du projet :
 | Environnement | Où | Clé d'API | Base de données |
 |---------------|----|-----------|-----------------|
 | Développement | Ordinateur local | `API_KEY` du fichier `.env` | PostgreSQL local (utilisateur limité `technova_api`, `DATABASE_URL`) |
-| Test | `pytest` (local et GitHub) | Clé de test, jamais la vraie | SQLite en mémoire |
+| Test | `pytest` (local et GitHub) | Clé de test, jamais la vraie | SQLite en mémoire en local ; PostgreSQL 16 jetable sur GitHub |
 | Staging | GitHub Actions (environnement `staging`) | Secret propre à `staging` | Aucune (vérification de démarrage) |
 | Production | GitHub Actions (environnement `production`) | Secret propre à `production` | Aucune (vérification de démarrage) |
 

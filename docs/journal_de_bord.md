@@ -25,7 +25,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 | 4 | Mise en conformité avec le modèle final du Projet 4 (seuil de décision 0,381) | Fait |
 | 5 | README complété : installation et création du fichier `.env` | Fait |
 | 6 | Journalisation des demandes et prédictions dans PostgreSQL | Fait |
-| 7 | Tests Pytest (29) avec couverture (97 %) | Fait |
+| 7 | Tests Pytest (90) avec couverture (100 %) | Fait |
 | 8 | CI/CD GitHub Actions (tests, puis vérification de démarrage en `staging` et en `production`) | Fait |
 | 9 | Requêtes SQL d'exemple, schéma de la base, exemples d'entrées | Fait |
 | 10 | Présentation, archive zip, auto-évaluation, répétition | En cours |
@@ -79,6 +79,16 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 - **Tests complétés** : 9 nouveaux tests (`tests/test_scripts_base.py` et `tests/test_cas_limites.py`) : les scripts de création,
   de chargement et de requêtes de la base testés avec une base SQLite temporaire, deux règles de cohérence de la fiche,
   clé d'API ou adresse de base non configurée. Au total 29 tests, couverture 97 % (78 % avant).
+
+### 17 novembre
+- **CI** : PostgreSQL 16 jetable dans le job de tests (PR #18) ; déclencheur étendu à tous les push (PR #20) ;
+  règle de protection de `main` (Pull Request et vérification « Tests Pytest » obligatoires).
+- **API et base** : enregistrement obligatoire (503 sans prédiction si la base est absente ou en panne) et utilisateur
+  PostgreSQL dédié `technova_api` aux droits limités.
+- **Tests** : 57 nouveaux tests (90 au total) : unitaires du machine learning (variables, nettoyage, règle de décision,
+  cohérence API/modèle), fonctionnels (15 vrais salariés, profils extrêmes et types), de performance et reproductibilité
+  (rappel >= 70 %, précision et F1 au-dessus d'un plancher, réentraînement identique) et des commandes du README.
+  Couverture mesurée aussi sur `ml/` : 100 %.
 
 ## Choix techniques et pourquoi
 
@@ -154,6 +164,6 @@ Modèle final (forêt aléatoire, seuil 0,381), jeu de test de 294 salariés don
 - Deux environnements GitHub (`staging` puis `production`) qui font la même vérification de démarrage ; le développement se fait sur l'ordinateur local.
 - Chaque environnement GitHub (`staging`, `production`) a son propre secret `API_KEY`, enregistré dans les réglages du dépôt ;
   ce sont des clés distinctes de celle du `.env` local.
-- Les 9 lignes de lancement à la main des scripts (blocs `if __name__ == "__main__"` de `db/create_db.py`,
-  `db/charger_salaries.py`, `db/requetes.py` et `db/journal.py`) ne sont pas testées, et `ml/train.py` est hors du
-  périmètre mesuré (couverture totale mesurée sur `app/` et `db/` : 97 %, voir `docs/rapport_couverture.txt`).
+- Couverture de 100 % des lignes de `app/`, `db/` et `ml/` (voir `docs/rapport_couverture.txt`) : toutes les lignes
+  sont exécutées par un test, mais cela ne prouve pas que tous les cas possibles sont testés. Les tests de performance
+  s'appuient sur les seules données TechNova (1470 salariés) et sur le découpage d'origine du Projet 4.

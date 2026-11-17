@@ -4,20 +4,14 @@ Chaque script accepte qu'on lui donne la base où écrire (le « moteur »).
 Dans ces tests, on lui donne toujours une base temporaire : la vraie base
 PostgreSQL n'est jamais touchée.
 """
-from sqlalchemy import create_engine
-from sqlalchemy.pool import StaticPool
-
 from db.charger_salaries import charger_salaries, compter_par_reponse
 from db.create_db import creer_tables
 from db.requetes import lancer_requetes
 
 
-def test_creer_tables_cree_les_trois_tables():
-    # Une base temporaire VIDE : sans aucune table
-    moteur = create_engine("sqlite://", poolclass=StaticPool,
-                           connect_args={"check_same_thread": False})
-    tables = creer_tables(moteur)
-    moteur.dispose()   # ferme la base temporaire proprement
+def test_creer_tables_cree_les_trois_tables(moteur_vide):
+    # moteur_vide : une base de test VIDE, sans aucune table (voir conftest.py)
+    tables = creer_tables(moteur_vide)
     assert tables == ["predictions", "requetes", "salaries"]
 
 

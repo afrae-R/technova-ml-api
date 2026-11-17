@@ -17,7 +17,9 @@ appliqué dans le dépôt.
   de chaque environnement.
 - **Dépendances** : versions figées dans `requirements.txt`, pour une installation identique partout.
 - **Tests** : tout comportement important est couvert par un test Pytest, y compris les cas d'erreur (clé absente,
-  fiche invalide, base en panne). La couverture est mesurée avec `pytest-cov` (voir `docs/rapport_couverture.txt`).
+  fiche invalide, base en panne). Quatre familles : tests unitaires (chaque composant seul), tests de l'API, tests
+  fonctionnels (API et modèle avec de vrais salariés) et tests de performance et de reproductibilité du modèle. La
+  couverture est mesurée avec `pytest-cov` sur `app/`, `db/` et `ml/` (voir `docs/rapport_couverture.txt`).
 - **Git** : une branche par sujet (`feature/<sujet>` ou `docs/<sujet>`), des commits descriptifs, des Pull Requests,
   des tags de version (voir le README, section « Conventions Git »).
 
@@ -43,7 +45,7 @@ appliqué dans le dépôt.
 
 | Étape | Rôle | Condition de démarrage |
 |-------|------|------------------------|
-| 1. `tests` | Installer Python et les bibliothèques, lancer les 29 tests Pytest avec la couverture | Chaque Pull Request et chaque push sur `main` |
+| 1. `tests` | Installer Python et les bibliothèques, lancer les 90 tests Pytest avec la couverture, sur un PostgreSQL 16 jetable | Chaque Pull Request et chaque push sur n'importe quelle branche |
 | 2. `staging` | Démarrer l'API et vérifier que `/health` répond (environnement d'essai, secret propre) | Les tests ont réussi (`needs: tests`) |
 | 3. `production` | Même vérification, avec le secret de production | `staging` a réussi, et seulement sur `main` |
 

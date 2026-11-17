@@ -17,6 +17,7 @@ CLE_DE_TEST = "cle-de-test-uniquement"
 ADRESSE_BASE_DE_TEST = os.environ.get("TEST_DATABASE_URL", "").strip()
 os.environ["API_KEY"] = CLE_DE_TEST
 os.environ["DATABASE_URL"] = ""
+os.environ["DATABASE_ADMIN_URL"] = ""   # sécurité : les tests ne lisent jamais l'adresse administrateur du .env
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

@@ -78,6 +78,29 @@ Dans Swagger :
 
 D'autres fiches d'exemple sont dans `docs/exemples_entrees.json`.
 
+Exemple en ligne de commande (PowerShell), sans Swagger. Remplacer `VOTRE_CLE` par la valeur de `API_KEY` de votre `.env` :
+
+```
+$cle = "VOTRE_CLE"
+$fiche = @'
+{
+  "age": 41, "genre": "F", "revenu_mensuel": 5993, "statut_marital": "Célibataire",
+  "departement": "Commercial", "poste": "Cadre Commercial",
+  "annee_experience_totale": 8, "annees_dans_l_entreprise": 6, "annees_dans_le_poste_actuel": 4,
+  "satisfaction_employe_environnement": 2, "note_evaluation_precedente": 3,
+  "satisfaction_employe_nature_travail": 4, "satisfaction_employe_equipe": 1,
+  "satisfaction_employe_equilibre_pro_perso": 1, "heures_supplementaires": "Oui",
+  "augmentation_salaire_precedente": 11.0, "nombre_participation_pee": 0, "nb_formations_suivies": 0,
+  "distance_domicile_travail": 1, "niveau_education": 2, "domaine_etude": "Infra & Cloud",
+  "frequence_deplacement": "Occasionnel", "annees_depuis_la_derniere_promotion": 0
+}
+'@
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/predict -ContentType "application/json; charset=utf-8" -Headers @{"X-API-Key" = $cle} -Body ([System.Text.Encoding]::UTF8.GetBytes($fiche))
+```
+
+La réponse a la forme `prediction` (`Oui` ou `Non`) et `probabilite_depart` (note entre 0 et 1). Sans l'en-tête `X-API-Key`
+ou avec une mauvaise clé, l'API répond 401. Pour vérifier seulement que l'API tourne : `Invoke-RestMethod http://127.0.0.1:8000/health`.
+
 Codes de réponse :
 
 | Code | Signification |
@@ -85,6 +108,29 @@ Codes de réponse :
 | 200 | Prédiction réussie : `{"prediction": "Oui" ou "Non", "probabilite_depart": 0.xxxx}` |
 | 401 | Clé d'API absente ou invalide |
 | 422 | Fiche invalide (champ manquant, valeur hors des règles) |
+| 503 | Prédiction impossible car l'enregistrement en base est impossible (base absente ou en panne) |
+
+## Architecture
+
+Parcours d'une demande de prédiction :
+
+```
+Client (Swagger, PowerShell, autre programme)
+   |  POST /predict + en-tête X-API-Key + fiche JSON (23 informations)
+   v
+API FastAPI (app/main.py)
+   1. vérifie la clé d'API                       -> 401 si absente ou fausse
+   2. valide la fiche avec Pydantic (app/)       -> 422 si invalide
+   3. prépare les données (ml/preprocessing.py)  : même code qu'à l'entraînement
+   4. calcule la note avec le modèle (ml/modele_attrition.joblib) et applique le seuil 0,381
+   5. enregistre la demande et la réponse dans PostgreSQL (db/) -> 503 si l'enregistrement échoue
+   v
+Réponse : {"prediction": "Oui" ou "Non", "probabilite_depart": ...}
+```
+
+Les quatre blocs du projet sont séparés : `app/` (l'API), `ml/` (préparation, entraînement, modèle), `db/` (base de données)
+et `tests/`. Le modèle est chargé une seule fois au démarrage de l'API. Les choix techniques et leurs raisons sont
+dans `docs/journal_de_bord.md` (section « Choix techniques et pourquoi »).
 
 ## Authentification et sécurité
 
@@ -176,6 +222,14 @@ Le modèle entraîné (`ml/modele_attrition.joblib`) et sa fiche d'identité (`m
 le seuil de décision) sont fournis dans le dépôt : il n'est pas nécessaire de ré-entraîner pour utiliser l'API.
 Pour le ré-entraîner : `python -m ml.train`.
 
+En bref : forêt aléatoire (scikit-learn, 100 arbres, profondeur 8), entraînée sur 1176 salariés et testée sur 294.
+Seuil de décision 0,381, choisi pour détecter au moins 70 % des départs. Sur le jeu de test : rappel 0,79,
+précision 0,30, F1 0,43 (voir « Limites à connaître » en haut de ce document).
+
+**Documentation complète** : [`docs/documentation_modele.md`](docs/documentation_modele.md) (fiche du modèle, variables,
+choix du seuil, performances, limites) et protocole de maintenance : quand et comment réentraîner le modèle,
+mettre à jour les bibliothèques, revenir en arrière.
+
 ## Base de données PostgreSQL
 
 Nécessite PostgreSQL 16 installé, une base nommée `technova`, `DATABASE_URL` (utilisateur `technova_api`) et
@@ -243,7 +297,7 @@ technova-ml-api/
 ├── db/                 # Base PostgreSQL : schéma, création, chargement, journalisation, requêtes
 ├── tests/              # Tests automatiques (Pytest)
 ├── data/               # Jeux de données utilisés
-├── docs/               # Documentation (journal de bord, schéma de la base, exemples d'entrées)
+├── docs/               # Documentation (modèle et maintenance, journal de bord, schéma de la base, exemples d'entrées)
 ├── requirements.txt    # Bibliothèques Python nécessaires
 ├── pytest.ini          # Configuration des tests
 ├── .env.example        # Modèle de fichier de configuration (sans secrets)

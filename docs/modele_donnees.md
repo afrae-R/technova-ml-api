@@ -47,3 +47,9 @@ python -m db.charger_salaries   # charge les 1470 salariés
 python -m db.journal            # compte les demandes et prédictions enregistrées
 python -m db.requetes           # lance les requêtes SQL d'exemple
 ```
+
+## Volume des données et performance
+
+- La table `salaries` est fixe (1470 lignes). Les tables `requetes` et `predictions` grossissent d'une ligne chacune à chaque appel de l'API : ce sont de petites lignes, et PostgreSQL gère sans difficulté le volume attendu pour un usage RH.
+- Les clés primaires (`id`) et la contrainte d'unicité de `predictions.requete_id` sont indexées automatiquement par PostgreSQL : retrouver une demande et sa réponse est rapide.
+- Si le volume augmentait fortement, on ajouterait un index sur `requetes.date_heure` (filtres par date), on archiverait les anciennes lignes et on ferait des sauvegardes régulières. Ce n'est pas nécessaire à ce stade et n'a pas été mis en place.

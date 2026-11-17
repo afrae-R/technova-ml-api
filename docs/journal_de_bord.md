@@ -105,7 +105,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
   réponse) sont écrites dans une seule transaction.
 - **Base de données avec règles** : colonnes obligatoires, contraintes CHECK (bornes, valeurs
   permises, cohérence entre colonnes), clé étrangère unique avec suppression en cascade.
-- **Tests sans toucher à la vraie base** : une base SQLite en mémoire et une clé de test ;
+- **Tests sans toucher à la vraie base** : une base SQLite en mémoire en local, un PostgreSQL 16 jetable sur GitHub Actions (PR #18) et une clé de test ;
   la dépendance `obtenir_moteur` de l'API est remplacée pendant les tests.
 - **PostgreSQL en local** avec l'utilisateur administrateur `postgres` pour le développement.
   Limite : en production, il faudrait un utilisateur dédié aux droits limités (moindre privilège).

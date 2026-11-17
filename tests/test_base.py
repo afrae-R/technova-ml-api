@@ -48,7 +48,8 @@ def test_un_champ_vide_est_refuse(moteur_test, fiche_valide):
 def test_une_prediction_inconnue_est_refusee(moteur_test, fiche_valide):
     with Session(moteur_test) as session:
         demande = Requete(**fiche_valide)
-        demande.reponse = Prediction(prediction="Peut-etre", probabilite_depart=0.5)
+        # 3 lettres (la taille permise) mais ni « Oui » ni « Non » : c'est la règle qui refuse
+        demande.reponse = Prediction(prediction="Peu", probabilite_depart=0.5)
         session.add(demande)
         with pytest.raises(IntegrityError):
             session.commit()

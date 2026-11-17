@@ -108,8 +108,7 @@ python -m pytest --cov=app --cov=db --cov-report=term-missing
 Les 29 tests couvrent l'API (200, 401, 422, respect du seuil, enregistrement en base, API qui répond si la base est
 en panne), la base (tables, types, contraintes, suppression en cascade), les scripts de la base (création, chargement,
 requêtes) et des cas limites (règles de cohérence de la fiche, clé d'API ou adresse de base non configurée).
-Ils utilisent une clé de test et une base de test : SQLite en mémoire sur l'ordinateur local, et une base PostgreSQL 16 jetable
-démarrée par le robot GitHub Actions (variable `TEST_DATABASE_URL`). Ils ne touchent jamais à la vraie base ni à la vraie clé.
+Ils utilisent une base SQLite en mémoire et une clé de test : ils ne touchent jamais à la vraie base ni à la vraie clé.
 
 La couverture totale est de 97 % (voir `docs/rapport_couverture.txt`). Les seules lignes non exécutées sont les 9 lignes
 de lancement à la main des scripts (blocs `if __name__ == "__main__"`).
@@ -144,7 +143,7 @@ Les environnements du projet :
 | Environnement | Où | Clé d'API | Base de données |
 |---------------|----|-----------|-----------------|
 | Développement | Ordinateur local | `API_KEY` du fichier `.env` | PostgreSQL local (`DATABASE_URL`) |
-| Test | `pytest` (local et GitHub) | Clé de test, jamais la vraie | SQLite en mémoire en local ; PostgreSQL 16 jetable sur GitHub |
+| Test | `pytest` (local et GitHub) | Clé de test, jamais la vraie | SQLite en mémoire |
 | Staging | GitHub Actions (environnement `staging`) | Secret propre à `staging` | Aucune (vérification de démarrage) |
 | Production | GitHub Actions (environnement `production`) | Secret propre à `production` | Aucune (vérification de démarrage) |
 
@@ -177,7 +176,8 @@ Trois tables : `salaries` (les 1470 salariés), `requetes` (chaque fiche reçue 
    dans la table `salaries`.
 3. **À chaque appel de l'API** : la fiche est validée, le modèle calcule le score, puis une ligne est écrite dans
    `requetes` (la fiche et la date) et une dans `predictions` (la réponse et le score), dans une même transaction.
-   Si la base est indisponible, l'API répond quand même et l'erreur est notée dans le terminal.
+   L'enregistrement est obligatoire : si la base est absente ou indisponible, l'API répond 503 et ne renvoie aucune
+   prédiction (une prédiction n'est jamais renvoyée sans être tracée). `/health` reste accessible sans base.
 4. **Protection** : les fiches ne contiennent ni nom ni prénom, mais ce sont des données personnelles (âge, revenu,
    situation familiale). En production : accès restreint à la base, HTTPS et durée de conservation à définir.
 

@@ -92,6 +92,9 @@ Codes de réponse :
   et jamais publié. `.env.example` montre les variables à définir, sans valeur réelle.
 - Toutes les fiches sont validées (types, bornes, valeurs permises, cohérence) avant d'atteindre le modèle,
   puis la base applique ses propres règles.
+- Le projet ne stocke aucun mot de passe d'utilisateur : il n'y a qu'une clé d'API, lue dans `.env`. Le hachage de
+  mots de passe n'est donc pas nécessaire ici. Si chaque utilisateur avait sa propre clé, on ne stockerait que son
+  empreinte (hash), jamais la clé elle-même.
 - Limite connue : en développement, la base est utilisée avec l'administrateur `postgres` ; en production il faudrait
   un utilisateur dédié aux droits limités.
 
@@ -105,7 +108,8 @@ python -m pytest --cov=app --cov=db --cov-report=term-missing
 Les 29 tests couvrent l'API (200, 401, 422, respect du seuil, enregistrement en base, API qui répond si la base est
 en panne), la base (tables, types, contraintes, suppression en cascade), les scripts de la base (création, chargement,
 requêtes) et des cas limites (règles de cohérence de la fiche, clé d'API ou adresse de base non configurée).
-Ils utilisent une base SQLite en mémoire et une clé de test : ils ne touchent jamais à la vraie base ni à la vraie clé.
+Ils utilisent une clé de test et une base de test : SQLite en mémoire sur l'ordinateur local, et une base PostgreSQL 16 jetable
+démarrée par le robot GitHub Actions (variable `TEST_DATABASE_URL`). Ils ne touchent jamais à la vraie base ni à la vraie clé.
 
 La couverture totale est de 97 % (voir `docs/rapport_couverture.txt`). Les seules lignes non exécutées sont les 9 lignes
 de lancement à la main des scripts (blocs `if __name__ == "__main__"`).
@@ -121,6 +125,28 @@ Le fichier `.github/workflows/ci.yml` :
 Chaque environnement a son propre secret `API_KEY`, enregistré dans les réglages du dépôt GitHub (Settings > Environments) :
 la clé n'est jamais dans le code et elle est distincte de celle du fichier `.env` local.
 Ces « déploiements » sont des vérifications de démarrage, pas une mise en ligne sur un serveur public.
+
+## Déploiement et environnements
+
+Ce projet ne comprend pas de mise en ligne sur un serveur public : les jobs `staging` et `production` de la CI/CD
+vérifient que l'application démarre et répond sur `/health`. Pour la déployer sur un serveur, les étapes seraient :
+
+1. Installer Python 3.14, puis les bibliothèques : `pip install -r requirements.txt`.
+2. Installer PostgreSQL 16, créer la base `technova`, puis lancer `python -m db.create_db`.
+3. Définir `API_KEY` et `DATABASE_URL` comme variables d'environnement du serveur (ou dans un fichier `.env` non publié).
+   Ne jamais les écrire dans le code.
+4. Lancer l'API : `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000`.
+5. Placer l'API derrière une connexion HTTPS, car les fiches contiennent des données personnelles.
+6. Vérifier que `GET /health` répond `{"statut": "ok", ...}`.
+
+Les environnements du projet :
+
+| Environnement | Où | Clé d'API | Base de données |
+|---------------|----|-----------|-----------------|
+| Développement | Ordinateur local | `API_KEY` du fichier `.env` | PostgreSQL local (`DATABASE_URL`) |
+| Test | `pytest` (local et GitHub) | Clé de test, jamais la vraie | SQLite en mémoire en local ; PostgreSQL 16 jetable sur GitHub |
+| Staging | GitHub Actions (environnement `staging`) | Secret propre à `staging` | Aucune (vérification de démarrage) |
+| Production | GitHub Actions (environnement `production`) | Secret propre à `production` | Aucune (vérification de démarrage) |
 
 ## Le modèle
 
@@ -142,6 +168,45 @@ python -m db.requetes           # lance les requêtes SQL d'exemple
 Trois tables : `salaries` (les 1470 salariés), `requetes` (chaque fiche reçue par l'API, avec la date) et
 `predictions` (chaque réponse, reliée à sa demande). À chaque appel réussi de `/predict`, l'API écrit une ligne dans
 `requetes` et une dans `predictions`. Le schéma et les règles sont décrits dans `docs/modele_donnees.md`.
+
+### Parcours des données
+
+1. **Entraînement** : les 3 fichiers CSV du dossier `data/` sont assemblés et nettoyés (`ml/preprocessing.py`), puis
+   `ml/train.py` fabrique le modèle et son seuil de décision.
+2. **Référence** : `python -m db.charger_salaries` charge une seule fois les 1470 salariés (avec la vraie réponse)
+   dans la table `salaries`.
+3. **À chaque appel de l'API** : la fiche est validée, le modèle calcule le score, puis une ligne est écrite dans
+   `requetes` (la fiche et la date) et une dans `predictions` (la réponse et le score), dans une même transaction.
+   Si la base est indisponible, l'API répond quand même et l'erreur est notée dans le terminal.
+4. **Protection** : les fiches ne contiennent ni nom ni prénom, mais ce sont des données personnelles (âge, revenu,
+   situation familiale). En production : accès restreint à la base, HTTPS et durée de conservation à définir.
+
+### Besoins analytiques (data analyse / tableau de bord)
+
+Non réalisé dans ce projet, mais le besoin est le suivant : un tableau de bord pour les RH et l'équipe data, qui lirait
+les tables `requetes` et `predictions` pour suivre le nombre de prédictions par jour, la part de réponses « Oui », la
+répartition des scores et les profils les plus souvent signalés. À terme, il comparerait les prédictions aux départs
+réels pour surveiller la qualité du modèle dans le temps.
+
+Un point de départ existe : `python -m db.requetes` exécute 4 requêtes SQL d'exemple (départs et restés, revenu moyen
+par département, 5 dernières prédictions avec jointure, répartition des réponses « Oui » et « Non »). Un outil de
+tableau de bord pourrait se connecter à PostgreSQL avec un utilisateur en lecture seule.
+
+## Conventions Git
+
+- Chaque sujet est travaillé dans une **branche dédiée**, créée depuis `main`. Nom de la branche : `feature/<sujet>` pour
+  une fonctionnalité (exemple : `feature/tests-couverture`) et `docs/<sujet>` pour la documentation (exemple :
+  `docs/correction-journal`).
+- Une branche est fusionnée dans `main` par **Pull Request** ; les tests de la CI se lancent à chaque Pull Request.
+- Un **message de commit** décrit ce qui a changé, en une phrase (exemple : « Ajoute les tests Pytest de l'API et de la
+  base de données »).
+- Les **versions** sont marquées par des tags `vMAJEUR.MINEUR.CORRECTIF`, posés sur `main` après une fusion
+  (exemple : `v1.2.1` pour une petite correction).
+- **Gestion des conflits** : un conflit apparaît quand deux branches modifient la même ligne ; Git ne choisit pas
+  lui-même, pour ne pas effacer le travail de l'autre. Aucun conflit n'a été rencontré dans ce projet (une seule
+  personne, une branche par sujet). Le cas échéant, on le résout avec l'outil de VS Code (garder ma version, l'autre
+  ou les deux), puis `git add`, `git commit` et `git push`.
+- Les standards de code et d'expérimentation ML sont décrits dans `docs/standards_code_et_ml.md`.
 
 ## Structure du projet
 

@@ -1,11 +1,11 @@
 # Robot GitHub Actions du projet TechNova.
-# Il se déclenche à chaque envoi (push) et à chaque Pull Request.
+# Il se déclenche à chaque envoi (push) sur n'importe quelle branche et à chaque Pull Request.
 
 name: CI-CD
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]   # toutes les branches (avant : seulement main)
   pull_request:
 
 jobs:

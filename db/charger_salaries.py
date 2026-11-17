@@ -33,7 +33,7 @@ def lire_salaries():
 
 def charger_salaries(moteur=None):
     """Insère les salariés dans la table. Retourne le nombre de salariés présents ensuite."""
-    moteur = moteur or creer_moteur()
+    moteur = moteur or creer_moteur(administrateur=True)
     # Une « session » regroupe plusieurs ordres en un seul bloc : tout réussit, ou rien n'est écrit
     with Session(moteur) as session:
         deja_presents = session.scalar(select(func.count()).select_from(Salarie))
@@ -45,7 +45,7 @@ def charger_salaries(moteur=None):
 
 def compter_par_reponse(moteur=None):
     """Retourne, par exemple, {'Non': 1233, 'Oui': 237} : combien sont partis ou restés."""
-    moteur = moteur or creer_moteur()
+    moteur = moteur or creer_moteur(administrateur=True)
     with Session(moteur) as session:
         lignes = session.execute(
             select(Salarie.a_quitte_l_entreprise, func.count())

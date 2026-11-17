@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from app.config import lire_cle_api
 from app.schemas import FicheSalarie
 from db.charger_salaries import charger_salaries
-from db.connexion import lire_adresse_base
+from db.connexion import creer_moteur, lire_adresse_base
 from db.requetes import lancer_requetes
 
 
@@ -47,3 +47,24 @@ def test_requetes_affichent_les_resultats_quand_la_base_est_remplie(moteur_test,
     sortie = capsys.readouterr().out
     assert "('Non', 1233)" in sortie
     assert "('Oui', 237)" in sortie
+
+
+def test_les_scripts_d_administration_utilisent_l_adresse_administrateur(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg2://moi:abc@localhost:5432/api")
+    monkeypatch.setenv("DATABASE_ADMIN_URL", "postgresql+psycopg2://admin:xyz@localhost:5432/api")
+    assert lire_adresse_base(administrateur=True).endswith("admin:xyz@localhost:5432/api")
+    assert lire_adresse_base().endswith("moi:abc@localhost:5432/api")   # l'API garde l'utilisateur limité
+
+
+def test_sans_adresse_administrateur_les_scripts_utilisent_database_url(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg2://moi:abc@localhost:5432/api")
+    monkeypatch.delenv("DATABASE_ADMIN_URL", raising=False)
+    assert lire_adresse_base(administrateur=True) == "postgresql+psycopg2://moi:abc@localhost:5432/api"
+
+
+def test_creer_moteur_administrateur_utilise_l_adresse_administrateur(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg2://moi:abc@localhost:5432/api")
+    monkeypatch.setenv("DATABASE_ADMIN_URL", "postgresql+psycopg2://admin:xyz@localhost:5432/api")
+    moteur = creer_moteur(administrateur=True)   # ne se connecte pas tout de suite
+    assert moteur.url.username == "admin"
+    moteur.dispose()

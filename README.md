@@ -52,8 +52,10 @@ Prérequis : Python 3.14 et Git. Les versions des bibliothèques sont figées da
    `API_KEY n'est pas configurée. Copiez .env.example en .env ...`.
    (La valeur d'exemple `change-moi` est refusée.)
 
-   `DATABASE_URL` n'est pas nécessaire pour lancer l'API : sans elle, l'API démarre avec un avertissement
-   et n'enregistre simplement pas les prédictions. Elle sert à la journalisation et aux scripts de la base de données.
+   `DATABASE_URL` n'est pas nécessaire pour démarrer l'API (`/health` répond), mais sans elle `/predict` répond 503,
+   car chaque prédiction doit être enregistrée. C'est l'adresse de l'utilisateur `technova_api`, aux droits limités.
+   `DATABASE_ADMIN_URL` (l'administrateur) ne sert qu'aux scripts de création et de chargement de la base ; si elle est
+   absente, ces scripts utilisent `DATABASE_URL`.
 
 ## Lancer l'API
 
@@ -95,8 +97,11 @@ Codes de réponse :
 - Le projet ne stocke aucun mot de passe d'utilisateur : il n'y a qu'une clé d'API, lue dans `.env`. Le hachage de
   mots de passe n'est donc pas nécessaire ici. Si chaque utilisateur avait sa propre clé, on ne stockerait que son
   empreinte (hash), jamais la clé elle-même.
-- Limite connue : en développement, la base est utilisée avec l'administrateur `postgres` ; en production il faudrait
-  un utilisateur dédié aux droits limités.
+- Accès à la base : l'API se connecte avec un utilisateur dédié `technova_api`, qui peut seulement lire et ajouter des
+  lignes dans `requetes` et `predictions` (pas de suppression, pas de création de table, pas d'accès aux salariés).
+  L'administrateur `postgres` n'est utilisé que par les scripts de création et de chargement (`DATABASE_ADMIN_URL`).
+  Le script `db/creer_utilisateur_api.sql` crée cet utilisateur ; son mot de passe n'est jamais écrit dans le dépôt.
+  Limite : sur un vrai serveur, il faudrait aussi des sauvegardes et un changement régulier des mots de passe.
 
 ## Tests
 
@@ -142,7 +147,7 @@ Les environnements du projet :
 
 | Environnement | Où | Clé d'API | Base de données |
 |---------------|----|-----------|-----------------|
-| Développement | Ordinateur local | `API_KEY` du fichier `.env` | PostgreSQL local (`DATABASE_URL`) |
+| Développement | Ordinateur local | `API_KEY` du fichier `.env` | PostgreSQL local (utilisateur limité `technova_api`, `DATABASE_URL`) |
 | Test | `pytest` (local et GitHub) | Clé de test, jamais la vraie | SQLite en mémoire |
 | Staging | GitHub Actions (environnement `staging`) | Secret propre à `staging` | Aucune (vérification de démarrage) |
 | Production | GitHub Actions (environnement `production`) | Secret propre à `production` | Aucune (vérification de démarrage) |
@@ -155,7 +160,9 @@ Pour le ré-entraîner : `python -m ml.train`.
 
 ## Base de données PostgreSQL
 
-Nécessite PostgreSQL 16 installé, une base nommée `technova` et `DATABASE_URL` renseignée dans `.env`.
+Nécessite PostgreSQL 16 installé, une base nommée `technova`, `DATABASE_URL` (utilisateur `technova_api`) et
+`DATABASE_ADMIN_URL` (administrateur) renseignées dans `.env`. Pour créer l'utilisateur de l'API, lancer une seule fois
+`psql -U postgres -d technova -f db/creer_utilisateur_api.sql`, puis définir son mot de passe avec `\password technova_api`.
 
 ```
 python -m db.create_db          # crée les 3 tables

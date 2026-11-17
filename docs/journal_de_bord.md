@@ -108,8 +108,10 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
   permises, cohérence entre colonnes), clé étrangère unique avec suppression en cascade.
 - **Tests sans toucher à la vraie base** : une base SQLite en mémoire en local, un PostgreSQL 16 jetable sur GitHub Actions (PR #18) et une clé de test ;
   la dépendance `obtenir_moteur` de l'API est remplacée pendant les tests.
-- **PostgreSQL en local** avec l'utilisateur administrateur `postgres` pour le développement.
-  Limite : en production, il faudrait un utilisateur dédié aux droits limités (moindre privilège).
+- **Accès à la base (moindre privilège)** : l'API utilise un utilisateur dédié `technova_api` (lire et ajouter dans
+  `requetes` et `predictions`, rien d'autre) ; l'administrateur `postgres` ne sert qu'aux scripts de création et de
+  chargement (`DATABASE_ADMIN_URL`). Au départ, tout passait par `postgres` ; changé pour la gestion fine des accès
+  demandée par la mission. Limite : sauvegardes et rotation des mots de passe non traitées.
 - **Pilote de connexion explicite** : adresse `postgresql+psycopg2://...` (SQLAlchemy 2.1.3 cherche
   sinon `psycopg` v3, non installé).
 - Pas de caractères spéciaux (`@`, `:`, `/`, `#`, `%`) dans le mot de passe de la base.

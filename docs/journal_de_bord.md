@@ -100,9 +100,10 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
   `niveau_hierarchique_poste`, `note_evaluation_actuelle`, `annees_sous_responsable_actuel`.
 - **Secrets** : `.env` n'est jamais publié (`.gitignore`) ; `.env.example` sert de modèle.
   L'API refuse de démarrer si `API_KEY` est absente ou égale à la valeur d'exemple.
-- **Journalisation tolérante aux pannes** : si la base est absente ou en panne, l'erreur est notée
-  dans le terminal mais l'utilisateur reçoit quand même sa réponse. Les deux lignes (demande et
-  réponse) sont écrites dans une seule transaction.
+- **Journalisation obligatoire** : toute prédiction est enregistrée avant d'être renvoyée. Si la base
+  est absente ou en panne, l'API répond 503 et ne renvoie aucune prédiction (au départ, le choix était
+  inverse : répondre quand même ; changé pour garantir la traçabilité demandée par la mission). Les
+  deux lignes (demande et réponse) sont écrites dans une seule transaction.
 - **Base de données avec règles** : colonnes obligatoires, contraintes CHECK (bornes, valeurs
   permises, cohérence entre colonnes), clé étrangère unique avec suppression en cascade.
 - **Tests sans toucher à la vraie base** : une base SQLite en mémoire en local, un PostgreSQL 16 jetable sur GitHub Actions (PR #18) et une clé de test ;

@@ -24,7 +24,7 @@ def test_predict_avec_mauvaise_cle_donne_401(client, fiche_valide):
     assert reponse.status_code == 401
 
 
-def test_predict_fiche_valide_donne_200(client, fiche_valide, entetes):
+def test_predict_fiche_valide_donne_200(client, api_avec_base_de_test, fiche_valide, entetes):
     reponse = client.post("/predict", json=fiche_valide, headers=entetes)
     assert reponse.status_code == 200
     donnees = reponse.json()
@@ -32,7 +32,7 @@ def test_predict_fiche_valide_donne_200(client, fiche_valide, entetes):
     assert 0 <= donnees["probabilite_depart"] <= 1
 
 
-def test_la_reponse_respecte_le_seuil_de_decision(client, fiche_valide, entetes):
+def test_la_reponse_respecte_le_seuil_de_decision(client, api_avec_base_de_test, fiche_valide, entetes):
     """« Oui » si et seulement si la note atteint le seuil (0,381)."""
     donnees = client.post("/predict", json=fiche_valide, headers=entetes).json()
     seuil = client.app.state.modele.seuil
@@ -94,12 +94,20 @@ def test_une_fiche_refusee_nest_pas_enregistree(client, api_avec_base_de_test, f
     assert compter(api_avec_base_de_test, Requete) == 0
 
 
-def test_lapi_repond_meme_si_la_base_est_en_panne(client, fiche_valide, entetes):
-    """Base sans tables = l'enregistrement échoue. L'utilisateur doit quand même avoir sa réponse."""
+def test_pas_de_prediction_si_la_base_est_en_panne(client, fiche_valide, entetes):
+    """Base sans tables = l'enregistrement échoue. Pas d'enregistrement, donc pas de prédiction (503)."""
     base_cassee = creer_base_de_test(avec_tables=False)
     app.dependency_overrides[obtenir_moteur] = lambda: base_cassee
     try:
         reponse = client.post("/predict", json=fiche_valide, headers=entetes)
     finally:
         app.dependency_overrides.clear()
-    assert reponse.status_code == 200
+    assert reponse.status_code == 503
+    assert "prediction" not in reponse.json()
+
+
+def test_pas_de_prediction_si_la_base_nest_pas_configuree(client, fiche_valide, entetes):
+    """Dans les tests, aucune base n'est configurée (DATABASE_URL vide) : /predict doit répondre 503."""
+    reponse = client.post("/predict", json=fiche_valide, headers=entetes)
+    assert reponse.status_code == 503
+    assert "prediction" not in reponse.json()

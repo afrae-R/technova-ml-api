@@ -28,12 +28,13 @@ async def cycle_de_vie(app: FastAPI):
     app.state.cle_api = lire_cle_api()  # refuse de démarrer si la clé n'est pas configurée
     app.state.modele = ModeleAttrition(CHEMIN_MODELE, CHEMIN_INFOS)
     # Moteur de la base PostgreSQL (pour enregistrer les prédictions).
-    # Si DATABASE_URL n'est pas configurée, l'API démarre quand même, sans enregistrement.
+    # Si DATABASE_URL n'est pas configurée, l'API démarre quand même (/health répond),
+    # mais /predict répondra 503 : une prédiction non enregistrée n'est jamais renvoyée.
     try:
         app.state.moteur = creer_moteur()
     except RuntimeError as erreur:
         app.state.moteur = None
-        journal.warning("Enregistrement en base désactivé : %s", erreur)
+        journal.warning("Base non configurée : /predict répondra 503. %s", erreur)
     yield
 
 
@@ -47,7 +48,8 @@ app = FastAPI(
         "sont de fausses alertes (précision de 0,30 ; F1 de la classe « Oui » de 0,43). "
         "La réponse est « Oui » quand le score atteint le seuil de décision (environ 0,38). "
         "Il constitue une aide à la décision, pas un outil de décision automatique.\n\n"
-        "Chaque prédiction réussie est enregistrée dans PostgreSQL (tables `requetes` et `predictions`).\n\n"
+        "Toute prédiction est enregistrée dans PostgreSQL (tables `requetes` et `predictions`) avant d'être "
+        "renvoyée : si l'enregistrement est impossible, l'API répond 503 et ne renvoie aucune prédiction.\n\n"
         "Les requêtes de prédiction nécessitent la clé d'accès dans l'en-tête `X-API-Key` "
         "(bouton **Authorize** ci-dessous)."
     ),
@@ -78,20 +80,6 @@ def obtenir_moteur(request: Request) -> Engine | None:
     return request.app.state.moteur
 
 
-def journaliser(moteur: Engine | None, fiche: dict, etiquette: str, score: float):
-    """Enregistre la prédiction en base, sans jamais empêcher l'API de répondre.
-
-    Si la base est absente ou en panne, on note l'erreur dans le terminal, mais l'utilisateur
-    reçoit quand même sa réponse : la prédiction reste utile même sans journal.
-    """
-    if moteur is None:
-        return
-    try:
-        enregistrer_prediction(moteur, fiche, etiquette, score)
-    except Exception:
-        journal.exception("Impossible d'enregistrer la prédiction dans la base")
-
-
 @app.get("/health", tags=["Supervision"], summary="Vérifier que l'API fonctionne")
 def sante():
     """Accessible sans clé : sert à vérifier que le service tourne."""
@@ -107,11 +95,27 @@ def sante():
     responses={
         401: {"description": "Clé d'API absente ou invalide"},
         422: {"description": "Fiche invalide (champ manquant, valeur hors des règles...)"},
+        503: {"description": "Base de données absente ou en panne : prédiction non enregistrée, donc refusée"},
     },
 )
 def predire(fiche: FicheSalarie, request: Request, moteur: Engine | None = Depends(obtenir_moteur)):
-    """Vérification n°1 faite par Pydantic (FicheSalarie), puis calcul par le modèle, puis journal."""
+    """Vérification n°1 faite par Pydantic (FicheSalarie), puis calcul par le modèle, puis journal.
+
+    L'enregistrement en base est OBLIGATOIRE : pas d'enregistrement, pas de réponse (erreur 503).
+    """
+    if moteur is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Base de données non configurée : la prédiction ne peut pas être enregistrée, elle est refusée.",
+        )
     donnees = fiche.model_dump()
     etiquette, score = request.app.state.modele.predire(donnees)
-    journaliser(moteur, donnees, etiquette, score)
+    try:
+        enregistrer_prediction(moteur, donnees, etiquette, score)
+    except Exception:
+        journal.exception("Impossible d'enregistrer la prédiction dans la base")
+        raise HTTPException(
+            status_code=503,
+            detail="Base de données indisponible : la prédiction n'a pas pu être enregistrée, elle est refusée.",
+        ) from None
     return PredictionReponse(prediction=etiquette, probabilite_depart=score)

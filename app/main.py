@@ -40,7 +40,7 @@ async def cycle_de_vie(app: FastAPI):
 
 app = FastAPI(
     title="TechNova - API de prédiction du départ des salariés",
-    version="1.2.1",
+    version="1.3.0",
     description=(
         "Reçoit la fiche d'un salarié et renvoie l'estimation du risque de départ.\n\n"
         "**Attention :** le modèle est réglé pour ne manquer presque aucun départ : sur le jeu de test "

@@ -14,7 +14,7 @@ from db.modeles import Base
 
 def creer_tables(moteur=None):
     """Construit les tables décrites dans db/modeles.py et retourne leurs noms."""
-    moteur = moteur or creer_moteur()
+    moteur = moteur or creer_moteur(administrateur=True)   # créer des tables demande les droits d'administrateur
     # create_all lit le plan (Base.metadata) et envoie les ordres CREATE TABLE à PostgreSQL
     Base.metadata.create_all(moteur)
     # On demande ensuite à PostgreSQL ce qu'il contient vraiment, pour vérifier

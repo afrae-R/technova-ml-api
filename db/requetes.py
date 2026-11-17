@@ -40,7 +40,8 @@ REQUETES = {
 
 def lancer_requetes(moteur=None):
     """Exécute chaque requête et affiche le résultat."""
-    moteur = moteur or creer_moteur()
+    # Ces requêtes lisent aussi la table salaries : l'utilisateur limité de l'API n'y a pas accès
+    moteur = moteur or creer_moteur(administrateur=True)
     with moteur.connect() as connexion:
         for question, sql in REQUETES.items():
             print(f"\n{question}")

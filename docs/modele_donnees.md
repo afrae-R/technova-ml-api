@@ -53,3 +53,15 @@ python -m db.requetes           # lance les requêtes SQL d'exemple
 - La table `salaries` est fixe (1470 lignes). Les tables `requetes` et `predictions` grossissent d'une ligne chacune à chaque appel de l'API : ce sont de petites lignes, et PostgreSQL gère sans difficulté le volume attendu pour un usage RH.
 - Les clés primaires (`id`) et la contrainte d'unicité de `predictions.requete_id` sont indexées automatiquement par PostgreSQL : retrouver une demande et sa réponse est rapide.
 - Si le volume augmentait fortement, on ajouterait un index sur `requetes.date_heure` (filtres par date), on archiverait les anciennes lignes et on ferait des sauvegardes régulières. Ce n'est pas nécessaire à ce stade et n'a pas été mis en place.
+
+## Droits d'accès
+
+Deux utilisateurs PostgreSQL se partagent la base :
+
+| Utilisateur | Utilisé par | Droits |
+|-------------|-------------|--------|
+| `postgres` (administrateur) | `db.create_db`, `db.charger_salaries`, `db.requetes` (via `DATABASE_ADMIN_URL`) | tous |
+| `technova_api` | l'API (via `DATABASE_URL`) | lire et ajouter des lignes dans `requetes` et `predictions`, utiliser leurs compteurs de numéros ; rien d'autre |
+
+Le script `db/creer_utilisateur_api.sql` crée `technova_api`. Son mot de passe se définit à part (`\password technova_api` dans `psql`) :
+il n'est jamais écrit dans le dépôt.

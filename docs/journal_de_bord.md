@@ -2,20 +2,16 @@
 
 Ce fichier garde la trace de ce qui a été fait, des choix techniques (et de leurs raisons),
 des problèmes rencontrés et de ce qui reste à faire. Il sert aussi de base pour justifier
-les choix techniques devant le jury.
+les choix techniques.
 
 ## Contexte
 
 - Mission : déployer le modèle de prédiction de départ des salariés du Projet 4 (TechNova)
   derrière une API, pour le client fictif Futurisys (interlocuteur : Aurélien, responsable technique).
-- Soutenance : **mardi 17 novembre 2026** (reportée plusieurs fois : 12 octobre, 19 octobre, 31 octobre, 10 novembre).
-  Format : 30 min = 15 min de présentation, 10 min de discussion, débrief.
 - Livrables : dépôt Git, API FastAPI documentée, tests Pytest + couverture, base PostgreSQL,
   pipeline CI/CD (YAML, environnements, secrets), README complet.
 
-## Planning (état au 10 novembre 2026)
-
-Le projet a pris du retard à cause de plusieurs suspensions et de reports de soutenance.
+## Planning
 
 | Étape | Contenu | État |
 |---|---|---|
@@ -28,7 +24,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
 | 7 | Tests Pytest (90) avec couverture (100 %) | Fait |
 | 8 | CI/CD GitHub Actions (tests, puis vérification de démarrage en `staging` et en `production`) | Fait |
 | 9 | Requêtes SQL d'exemple, schéma de la base, exemples d'entrées | Fait |
-| 10 | Présentation, archive zip, auto-évaluation, répétition | En cours |
+| 10 | Dossier de livraison (archive zip) et auto-évaluation | En cours |
 
 ## Ce qui a été fait
 
@@ -68,7 +64,7 @@ Le projet a pris du retard à cause de plusieurs suspensions et de reports de so
   sur `main`, vérification du démarrage de l'API. Exécutions vertes.
 - Requêtes SQL d'exemple (`db/requetes.py`), schéma de la base (`docs/modele_donnees.md`),
   exemples d'entrées (`docs/exemples_entrees.json`) (PR #13).
-- Présentation de 11 diapositives.
+- Présentation du projet en diapositives.
 
 ### 10 novembre
 - **CI/CD à deux environnements** : le job de déploiement est remplacé par deux jobs, `staging` (aussi lancé sur les Pull Requests)
@@ -137,7 +133,7 @@ Modèle final (forêt aléatoire, seuil 0,381), jeu de test de 294 salariés don
 - Validation croisée sur l'entraînement (seuil 0,50) : F1 0,49 (+/- 0,06) ; rappel 0,52 (+/- 0,07).
 - F1 « Oui » train 0,60 contre 0,43 en test : léger surapprentissage.
 - Le score n'est pas une probabilité calibrée.
-- Conclusion à présenter : performance modeste ; le modèle est une aide à la décision, pas un outil
+- Conclusion : performance modeste ; le modèle est une aide à la décision, pas un outil
   de décision automatique. Le Projet 5 porte sur le déploiement, pas sur la performance.
 
 ## Problèmes rencontrés
